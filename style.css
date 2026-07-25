@@ -1,0 +1,281 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
+    color: #f8fafc;
+    max-width: 1000px;
+    margin: auto;
+    padding: 30px 20px;
+    min-height: 100vh;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+h2 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: #60a5fa;
+    border-left: 4px solid #3b82f6;
+    padding-left: 10px;
+}
+
+section {
+    background: rgba(15, 23, 42, .95);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    transition: .3s;
+}
+
+section:hover {
+    transform: translateY(-3px);
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+input {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 10px;
+    background: #1e293b;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    border: 1px solid transparent;
+    transition: .3s;
+}
+
+input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .2);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .3s;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, .35);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+}
+
+button:active {
+    transform: scale(.98);
+}
+
+#resultado {
+    min-height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 18px;
+    line-height: 1.8;
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #334155;
+}
+
+hr {
+    border: none;
+    height: 1px;
+    background: #334155;
+    margin: 20px 0;
+}
+
+section:last-of-type {
+    border: 2px solid #3b82f6;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* RESULTADO */
+/* ==========================
+   RESULTADO DA ANALISE
+========================== */
+
+#resultado {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 15px;
+    min-height: 100px;
+}
+
+/* CABEÇALHO */
+
+.resultado-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    background: #111827;
+
+    padding: 12px 15px;
+
+    border-radius: 10px;
+
+    margin-bottom: 15px;
+}
+
+.resultado-top strong {
+    color: #fff;
+    font-size: 18px;
+}
+
+.probabilidade {
+    color: #22c55e;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* MOTIVOS */
+
+.motivos-box {
+    background: #1e293b;
+
+    padding: 12px;
+
+    border-radius: 10px;
+
+    margin-bottom: 15px;
+}
+
+.motivos-box h3 {
+    font-size: 15px;
+
+    margin-bottom: 10px;
+
+    color: #60a5fa;
+}
+
+.motivos-box ul {
+    list-style: none;
+
+    padding: 0;
+}
+
+.motivos-box li {
+    background: #0f172a;
+
+    padding: 8px;
+
+    border-radius: 6px;
+
+    margin-bottom: 6px;
+
+    font-size: 14px;
+}
+
+/* CARDS */
+
+.cards {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 10px;
+}
+
+.card {
+    background: #111827;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    text-align: center;
+}
+
+.card span {
+    display: block;
+
+    font-size: 12px;
+
+    color: #94a3b8;
+
+    margin-bottom: 4px;
+}
+
+.card strong {
+    color: #60a5fa;
+
+    font-size: 18px;
+}
+
+.card span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 32px;
+
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+}
+
+/* RESPONSIVO */
+
+@media(max-width:768px) {
+
+    .cards {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
