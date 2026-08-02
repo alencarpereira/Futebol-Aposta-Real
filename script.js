@@ -213,7 +213,6 @@ function analisarPartida() {
         mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
     } else if (vitoriaB >= 45) {
         // Se estiver na Faixa de Risco (45% a 59%), converte para Empate Anula (DNB)
-        // Estima a proteção somando parte da taxa de empates do confronto
         const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
         const probDNB = Math.min(90, Math.round(vitoriaB + (taxaEmpateConfronto * 0.6)));
 
@@ -223,6 +222,10 @@ function analisarPartida() {
     }
 
     const melhor = escolherMelhorAposta(mercados);
+
+    // 1. GERA OS MOTIVOS BASEADO NA MELHOR APOSTA ESCOLHIDA
+    const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h);
+
     const resultado = document.getElementById("resultado");
 
     if (melhor.probabilidade < 60) {
@@ -233,10 +236,21 @@ function analisarPartida() {
         return;
     }
 
+    // 2. EXIBE O RESULTADO + A CAIXA DE MOTIVOS + CARDS
     resultado.innerHTML = `
         <div class="resultado-top">
             <strong>🔥 ${melhor.nome}</strong>
             <span class="probabilidade">${melhor.probabilidade}%</span>
+        </div>
+
+        <div class="motivos-box">
+            <h3>Motivos</h3>
+            <ul>
+                ${motivos.length > 0
+            ? motivos.map(m => `<li>${m}</li>`).join("")
+            : "<li>✓ Dados estatísticos favoráveis para este mercado.</li>"
+        }
+            </ul>
         </div>
 
         <div class="cards">
@@ -248,109 +262,70 @@ function analisarPartida() {
     `;
 }
 
-function gerarMotivos(
-    mercado,
-    timeA,
-    timeB,
-    h2h
-) {
+function gerarMotivos(mercado, timeA, timeB, h2h) {
 
     const motivos = [];
 
     if (mercado === "Ambos Marcam") {
-
         if (timeA.btts >= 60)
-            motivos.push(
-                `✓ Time A teve BTTS em ${Math.round(timeA.btts)}% dos jogos`
-            );
+            motivos.push(`✓ Time A teve BTTS em ${Math.round(timeA.btts)}% dos jogos`);
 
         if (timeB.btts >= 60)
-            motivos.push(
-                `✓ Time B teve BTTS em ${Math.round(timeB.btts)}% dos jogos`
-            );
+            motivos.push(`✓ Time B teve BTTS em ${Math.round(timeB.btts)}% dos jogos`);
 
         if (h2h.btts >= 60)
-            motivos.push(
-                `✓ H2H teve BTTS em ${Math.round(h2h.btts)}% dos confrontos`
-            );
+            motivos.push(`✓ H2H teve BTTS em ${Math.round(h2h.btts)}% dos confrontos`);
 
         if (timeA.mediaMarcados >= 1)
-            motivos.push(
-                `✓ Time A marcou média de ${timeA.mediaMarcados.toFixed(1)} gols`
-            );
+            motivos.push(`✓ Time A marcou média de ${timeA.mediaMarcados.toFixed(1)} gols`);
 
         if (timeB.mediaMarcados >= 1)
-            motivos.push(
-                `✓ Time B marcou média de ${timeB.mediaMarcados.toFixed(1)} gols`
-            );
-
+            motivos.push(`✓ Time B marcou média de ${timeB.mediaMarcados.toFixed(1)} gols`);
     }
 
     if (mercado === "Over 2.5 Gols") {
-
         if (timeA.over25 >= 60)
-            motivos.push(
-                `✓ Time A teve Over 2.5 em ${Math.round(timeA.over25)}% dos jogos`
-            );
+            motivos.push(`✓ Time A teve Over 2.5 em ${Math.round(timeA.over25)}% dos jogos`);
 
         if (timeB.over25 >= 60)
-            motivos.push(
-                `✓ Time B teve Over 2.5 em ${Math.round(timeB.over25)}% dos jogos`
-            );
+            motivos.push(`✓ Time B teve Over 2.5 em ${Math.round(timeB.over25)}% dos jogos`);
 
         if (h2h.over25 >= 60)
-            motivos.push(
-                `✓ H2H teve Over 2.5 em ${Math.round(h2h.over25)}% dos confrontos`
-            );
-
+            motivos.push(`✓ H2H teve Over 2.5 em ${Math.round(h2h.over25)}% dos confrontos`);
     }
 
     if (mercado === "Vitória Time A") {
-
         if (timeA.forma > timeB.forma)
-            motivos.push(
-                `✓ Time A possui melhor forma recente`
-            );
+            motivos.push(`✓ Time A possui melhor forma recente`);
 
         if (timeA.mediaMarcados > timeB.mediaMarcados)
-            motivos.push(
-                `✓ Time A possui ataque mais eficiente`
-            );
+            motivos.push(`✓ Time A possui ataque mais eficiente`);
 
         if (timeA.mediaSofridos < timeB.mediaSofridos)
-            motivos.push(
-                `✓ Time A possui defesa mais sólida`
-            );
+            motivos.push(`✓ Time A possui defesa mais sólida`);
 
         if (h2h.vitoriaA > h2h.vitoriaB)
-            motivos.push(
-                `✓ Time A leva vantagem nos confrontos diretos`
-            );
-
+            motivos.push(`✓ Time A leva vantagem nos confrontos diretos`);
     }
 
-    if (mercado === "Vitória Time B") {
+    // --- AJUSTE AQUI: Aceita tanto Vitória Time B quanto Empate Anula ---
+    if (mercado === "Vitória Time B" || mercado === "Empate Anula - Time B") {
+
+        if (mercado === "Empate Anula - Time B") {
+            motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
+        }
 
         if (timeB.forma > timeA.forma)
-            motivos.push(
-                `✓ Time B possui melhor forma recente`
-            );
+            motivos.push(`✓ Time B possui melhor forma recente`);
 
         if (timeB.mediaMarcados > timeA.mediaMarcados)
-            motivos.push(
-                `✓ Time B possui ataque mais eficiente`
-            );
+            motivos.push(`✓ Time B possui ataque mais eficiente`);
 
         if (timeB.mediaSofridos < timeA.mediaSofridos)
-            motivos.push(
-                `✓ Time B possui defesa mais sólida`
-            );
+            motivos.push(`✓ Time B possui defesa mais sólida`);
 
         if (h2h.vitoriaB > h2h.vitoriaA)
-            motivos.push(
-                `✓ Time B leva vantagem nos confrontos diretos`
-            );
-
+            motivos.push(`✓ Time B leva vantagem nos confrontos diretos`);
     }
 
     return motivos;
