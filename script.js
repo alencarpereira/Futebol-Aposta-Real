@@ -187,20 +187,63 @@ function escolherMelhorAposta(lista) {
 // ANÁLISE PRINCIPAL (SÓ O TIME B MUDOU AQUI)
 // ======================================
 
+// ======================================
+// AJUSTE POR CONTEXTO DE COMPETIÇÃO
+// ======================================
+
+function aplicarAjusteCompeticao(btts, over25, probEmpate, tipoCompeticao) {
+    let bttsAjustado = btts;
+    let over25Ajustado = over25;
+    let empateAjustado = probEmpate;
+
+    if (tipoCompeticao === "matamata") {
+        // MATA-MATA: Jogos mais fechados e cautelosos
+        bttsAjustado = Math.round(btts * 0.88);     // Reduz ~12% do BTTS
+        over25Ajustado = Math.round(over25 * 0.85); // Reduz ~15% do Over 2.5
+        empateAjustado = Math.round(probEmpate * 1.15); // Aumenta ~15% o risco de Empate
+    } else {
+        // LIGA (Pontos Corridos): Necessidade de buscar vitória
+        bttsAjustado = Math.min(95, Math.round(btts * 1.05));     // Bônus de +5% no BTTS
+        over25Ajustado = Math.min(95, Math.round(over25 * 1.05)); // Bônus de +5% no Over 2.5
+    }
+
+    return {
+        btts: bttsAjustado,
+        over25: over25Ajustado,
+        empate: empateAjustado
+    };
+}
+
 function analisarPartida() {
+    // 1. CAPTURA DO TIPO DE COMPETIÇÃO
+    const tipoCompeticao = document.getElementById("tipoCompeticao")?.value || "liga";
+
+    // 2. OBTENÇÃO DOS DADOS
     const jogosA = obterJogosTime("a");
     const jogosB = obterJogosTime("b");
     const h2hJogos = obterH2H();
 
+    // 3. CÁLCULO DAS ESTATÍSTICAS
     const timeA = calcularEstatisticas(jogosA);
     const timeB = calcularEstatisticas(jogosB);
     const h2h = calcularH2H(h2hJogos);
 
+    // 4. PROBABILIDADES BASE
     const vitoriaA = calcularVitoriaTimeA(timeA, timeB, h2h);
     const vitoriaB = calcularVitoriaTimeB(timeA, timeB, h2h);
-    const btts = calcularBTTS(timeA, timeB, h2h);
-    const over25 = calcularOver25(timeA, timeB, h2h);
 
+    let btts = calcularBTTS(timeA, timeB, h2h);
+    let over25 = calcularOver25(timeA, timeB, h2h);
+
+    // Estimativa da taxa de empate do confronto para a ponderação
+    const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
+
+    // 5. APLICA A PONDERAÇÃO MATA-MATA VS LIGA
+    const ajustes = aplicarAjusteCompeticao(btts, over25, taxaEmpateConfronto, tipoCompeticao);
+    btts = ajustes.btts;
+    over25 = ajustes.over25;
+
+    // 6. MONTAGEM DOS MERCADOS DISPONÍVEIS
     const mercados = [
         { nome: "Vitória Time A", probabilidade: vitoriaA },
         { nome: "Ambos Marcam", probabilidade: btts },
@@ -209,25 +252,25 @@ function analisarPartida() {
 
     // --- REGRA EXCLUSIVA PARA O TIME B ---
     if (vitoriaB >= 60) {
-        // Se a vitória for muito clara, indica Vitória Seca do Time B
+        // Super favorito -> Mantém Vitória Seca
         mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
     } else if (vitoriaB >= 45) {
-        // Se estiver na Faixa de Risco (45% a 59%), converte para Empate Anula (DNB)
-        const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
+        // Faixa de Risco (45% a 59%) -> Converte para Empate Anula (DNB)
         const probDNB = Math.min(90, Math.round(vitoriaB + (taxaEmpateConfronto * 0.6)));
-
         mercados.push({ nome: "Empate Anula - Time B", probabilidade: probDNB });
     } else {
         mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
     }
 
+    // 7. SELEÇÃO DA MELHOR APOSTA
     const melhor = escolherMelhorAposta(mercados);
 
-    // 1. GERA OS MOTIVOS BASEADO NA MELHOR APOSTA ESCOLHIDA
+    // 8. GERAÇÃO DOS MOTIVOS BASEADOS NA MELHOR OPÇÃO
     const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h);
 
     const resultado = document.getElementById("resultado");
 
+    // 9. FILTRO DE CONFIANÇA MÍNIMA (60%)
     if (melhor.probabilidade < 60) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
@@ -236,7 +279,7 @@ function analisarPartida() {
         return;
     }
 
-    // 2. EXIBE O RESULTADO + A CAIXA DE MOTIVOS + CARDS
+    // 10. EXIBIÇÃO DOS RESULTADOS NA INTERFACE
     resultado.innerHTML = `
         <div class="resultado-top">
             <strong>🔥 ${melhor.nome}</strong>
