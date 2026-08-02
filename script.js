@@ -25,7 +25,7 @@ function obterH2H() {
 }
 
 // ======================================
-// ESTATÍSTICAS PONDERADAS (PESOS 5 a 1)
+// ESTATÍSTICAS COM PESO (ORIGINAL)
 // ======================================
 
 function calcularEstatisticas(jogos) {
@@ -66,7 +66,7 @@ function calcularEstatisticas(jogos) {
 }
 
 // ======================================
-// ESTATÍSTICAS H2H
+// ESTATÍSTICAS H2H (ORIGINAL)
 // ======================================
 
 function calcularH2H(h2h) {
@@ -95,70 +95,96 @@ function calcularH2H(h2h) {
 }
 
 // ======================================
-// PROBABILIDADES DE RESULTADO FINAL (1X2)
+// VITÓRIA TIME A (ORIGINAL MANTIDO)
 // ======================================
 
-function calcularProbabilidades1X2(timeA, timeB, h2h) {
-    // Cálculo de Força Bruta
-    let forcaA = (timeA.forma * 0.40) +
+function calcularVitoriaTimeA(timeA, timeB, h2h) {
+    const forcaA =
+        (timeA.forma * 0.40) +
         (timeA.mediaMarcados * 20 * 0.25) +
-        (Math.max(0, 3 - timeA.mediaSofridos) * 20 * 0.15) +
+        ((3 - timeA.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaA * 0.20);
 
-    let forcaB = (timeB.forma * 0.40) +
+    const forcaB =
+        (timeB.forma * 0.40) +
         (timeB.mediaMarcados * 20 * 0.25) +
-        (Math.max(0, 3 - timeB.mediaSofridos) * 20 * 0.15) +
+        ((3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20);
 
-    // Vantagem de Mando de Campo (Time A +12%, Time B -5%)
-    forcaA *= 1.12;
-    forcaB *= 0.95;
-
-    // Estimativa de Tendência ao Empate
-    const tendenciaEmpate = (timeA.taxaEmpate * 0.35) +
-        (timeB.taxaEmpate * 0.35) +
-        (h2h.empate * 0.30);
-
-    // Ajuste da barra de 100% considerando a margem do Empate
-    const probEmpateBruta = Math.min(35, Math.max(18, tendenciaEmpate));
-    const margemVitoria = 100 - probEmpateBruta;
-
-    const probA = Math.round((forcaA / (forcaA + forcaB)) * margemVitoria);
-    const probB = Math.round((forcaB / (forcaA + forcaB)) * margemVitoria);
-    const probEmpate = 100 - (probA + probB);
-
-    return { probA, probB, probEmpate };
+    return Math.round((forcaA / (forcaA + forcaB)) * 100);
 }
 
 // ======================================
-// MERCADOS DE GOLS
+// VITÓRIA TIME B (AJUSTADO COM DESCONTO DE MANDO)
+// ======================================
+
+function calcularVitoriaTimeB(timeA, timeB, h2h) {
+    const forcaA =
+        (timeA.forma * 0.40) +
+        (timeA.mediaMarcados * 20 * 0.25) +
+        ((3 - timeA.mediaSofridos) * 20 * 0.15) +
+        (h2h.vitoriaA * 0.20);
+
+    // Força B com leve penalização de visitante (-8%)
+    const forcaB = (
+        (timeB.forma * 0.40) +
+        (timeB.mediaMarcados * 20 * 0.25) +
+        ((3 - timeB.mediaSofridos) * 20 * 0.15) +
+        (h2h.vitoriaB * 0.20)
+    ) * 0.92;
+
+    return Math.round((forcaB / (forcaA + forcaB)) * 100);
+}
+
+// ======================================
+// BTTS (ORIGINAL MANTIDO)
 // ======================================
 
 function calcularBTTS(timeA, timeB, h2h) {
-    let prob = (timeA.btts * 0.35) + (timeB.btts * 0.35) + (h2h.btts * 0.30);
+    let probabilidade =
+        (timeA.btts * 0.35) +
+        (timeB.btts * 0.35) +
+        (h2h.btts * 0.30);
 
-    // Bônus se ambos possuem boa média de gols
-    if (timeA.mediaMarcados >= 1.2 && timeB.mediaMarcados >= 1.2) {
-        prob += 8;
+    if (timeA.mediaMarcados >= 1.5 && timeB.mediaMarcados >= 1.5) {
+        probabilidade += 5;
     }
 
-    return Math.min(Math.round(prob), 92);
-}
-
-function calcularOver25(timeA, timeB, h2h) {
-    // Baseado na frequência real de jogos com +2.5 gols
-    let prob = (timeA.over25 * 0.35) + (timeB.over25 * 0.35) + (h2h.over25 * 0.30);
-
-    // Penalização se as defesas forem muito fechadas
-    if (timeA.mediaSofridos < 0.8 && timeB.mediaSofridos < 0.8) {
-        prob -= 10;
-    }
-
-    return Math.max(10, Math.min(90, Math.round(prob)));
+    return Math.min(Math.round(probabilidade), 95);
 }
 
 // ======================================
-// ANÁLISE PRINCIPAL E SELEÇÃO DE MERCADO
+// OVER 2.5 (ORIGINAL MANTIDO)
+// ======================================
+
+function calcularOver25(timeA, timeB, h2h) {
+    let mediaA = (timeA.mediaMarcados + timeA.mediaSofridos) * 20;
+    let mediaB = (timeB.mediaMarcados + timeB.mediaSofridos) * 20;
+
+    let score = 0;
+    score += mediaA * 0.35;
+    score += mediaB * 0.35;
+    score += h2h.over25 * 0.30;
+
+    return Math.round(Math.max(0, Math.min(100, score)));
+}
+
+// ======================================
+// ESCOLHER MELHOR APOSTA
+// ======================================
+
+function escolherMelhorAposta(lista) {
+    let melhor = lista[0];
+    lista.forEach(item => {
+        if (item.probabilidade > melhor.probabilidade) {
+            melhor = item;
+        }
+    });
+    return melhor;
+}
+
+// ======================================
+// ANÁLISE PRINCIPAL (SÓ O TIME B MUDOU AQUI)
 // ======================================
 
 function analisarPartida() {
@@ -170,53 +196,54 @@ function analisarPartida() {
     const timeB = calcularEstatisticas(jogosB);
     const h2h = calcularH2H(h2hJogos);
 
-    const { probA, probB, probEmpate } = calcularProbabilidades1X2(timeA, timeB, h2h);
+    const vitoriaA = calcularVitoriaTimeA(timeA, timeB, h2h);
+    const vitoriaB = calcularVitoriaTimeB(timeA, timeB, h2h);
     const btts = calcularBTTS(timeA, timeB, h2h);
     const over25 = calcularOver25(timeA, timeB, h2h);
 
-    const mercados = [];
+    const mercados = [
+        { nome: "Vitória Time A", probabilidade: vitoriaA },
+        { nome: "Ambos Marcam", probabilidade: btts },
+        { nome: "Over 2.5 Gols", probabilidade: over25 }
+    ];
 
-    // Seleção Inteligente de Mercados
-    mercados.push({ nome: "Vitória Time A", probabilidade: probA });
+    // --- REGRA EXCLUSIVA PARA O TIME B ---
+    if (vitoriaB >= 60) {
+        // Se a vitória for muito clara, indica Vitória Seca do Time B
+        mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
+    } else if (vitoriaB >= 45) {
+        // Se estiver na Faixa de Risco (45% a 59%), converte para Empate Anula (DNB)
+        // Estima a proteção somando parte da taxa de empates do confronto
+        const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
+        const probDNB = Math.min(90, Math.round(vitoriaB + (taxaEmpateConfronto * 0.6)));
 
-    // Proteção para o Time B (DNB se probabilidade for razoável, mas incerta)
-    if (probB >= 45 && probB < 60) {
-        mercados.push({
-            nome: "Empate Anula - Time B",
-            probabilidade: Math.round(probB + (probEmpate * 0.6))
-        });
+        mercados.push({ nome: "Empate Anula - Time B", probabilidade: probDNB });
     } else {
-        mercados.push({ nome: "Vitória Time B", probabilidade: probB });
+        mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
     }
 
-    mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
-    mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
-
-    // Ordenar melhor aposta
-    mercados.sort((a, b) => b.probabilidade - a.probabilidade);
-    const melhor = mercados[0];
-
+    const melhor = escolherMelhorAposta(mercados);
     const resultado = document.getElementById("resultado");
 
     if (melhor.probabilidade < 60) {
         resultado.innerHTML = `
-            <h3>⚠️ Sem entrada segura recomendada</h3>
-            <p>Maior confiança encontrada: <strong>${melhor.nome} (${melhor.probabilidade}%)</strong></p>
+            <h3>⚠️ Sem entrada recomendada</h3>
+            <p>Maior confiança: ${melhor.probabilidade}%</p>
         `;
         return;
     }
 
     resultado.innerHTML = `
         <div class="resultado-top">
-            <strong>🔥 Sugestão: ${melhor.nome}</strong>
+            <strong>🔥 ${melhor.nome}</strong>
             <span class="probabilidade">${melhor.probabilidade}%</span>
         </div>
-        <div class="cards" style="display:flex; gap:10px; margin-top:15px;">
-            <div class="card"><span>Vitória A:</span> <strong>${probA}%</strong></div>
-            <div class="card"><span>Empate:</span> <strong>${probEmpate}%</strong></div>
-            <div class="card"><span>Vitória B:</span> <strong>${probB}%</strong></div>
-            <div class="card"><span>BTTS:</span> <strong>${btts}%</strong></div>
-            <div class="card"><span>Over 2.5:</span> <strong>${over25}%</strong></div>
+
+        <div class="cards">
+            <div class="card"><span>Vitória A</span><strong>${vitoriaA}%</strong></div>
+            <div class="card"><span>Vitória B</span><strong>${vitoriaB}%</strong></div>
+            <div class="card"><span>BTTS</span><strong>${btts}%</strong></div>
+            <div class="card"><span>Over 2.5</span><strong>${over25}%</strong></div>
         </div>
     `;
 }
