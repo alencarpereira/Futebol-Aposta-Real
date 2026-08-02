@@ -3,422 +3,222 @@
 // ======================================
 
 function obterJogosTime(prefixo) {
-
     const jogos = [];
-
     for (let i = 1; i <= 5; i++) {
-
         jogos.push({
-            marcou: Number(document.getElementById(`${prefixo}_m${i}`).value) || 0,
-            sofreu: Number(document.getElementById(`${prefixo}_s${i}`).value) || 0
+            marcou: Number(document.getElementById(`${prefixo}_m${i}`)?.value) || 0,
+            sofreu: Number(document.getElementById(`${prefixo}_s${i}`)?.value) || 0
         });
-
     }
-
     return jogos;
 }
 
 function obterH2H() {
-
     const jogos = [];
-
     for (let i = 1; i <= 5; i++) {
-
         jogos.push({
-            golsA: Number(document.getElementById(`h_a${i}`).value) || 0,
-            golsB: Number(document.getElementById(`h_b${i}`).value) || 0
+            golsA: Number(document.getElementById(`h_a${i}`)?.value) || 0,
+            golsB: Number(document.getElementById(`h_b${i}`)?.value) || 0
         });
-
     }
-
     return jogos;
 }
 
-
 // ======================================
-// ESTATÍSTICAS COM PESO
-// MAIS RECENTE = PESO 5
-// MAIS ANTIGO = PESO 1
+// ESTATÍSTICAS PONDERADAS (PESOS 5 a 1)
 // ======================================
 
 function calcularEstatisticas(jogos) {
-
     const pesos = [5, 4, 3, 2, 1];
-
     let pontos = 0;
     let golsMarcados = 0;
     let golsSofridos = 0;
-
     let btts = 0;
     let over25 = 0;
-
+    let empates = 0;
     let pesoTotal = 0;
 
     jogos.forEach((jogo, index) => {
-
         const peso = pesos[index];
-
         pesoTotal += peso;
 
         golsMarcados += jogo.marcou * peso;
         golsSofridos += jogo.sofreu * peso;
 
-        if (jogo.marcou > jogo.sofreu)
-            pontos += 3 * peso;
-
-        if (jogo.marcou === jogo.sofreu)
+        if (jogo.marcou > jogo.sofreu) pontos += 3 * peso;
+        if (jogo.marcou === jogo.sofreu) {
             pontos += 1 * peso;
+            empates++;
+        }
 
-        if (jogo.marcou > 0 && jogo.sofreu > 0)
-            btts++;
-
-        if ((jogo.marcou + jogo.sofreu) > 2)
-            over25++;
+        if (jogo.marcou > 0 && jogo.sofreu > 0) btts++;
+        if ((jogo.marcou + jogo.sofreu) > 2) over25++;
     });
 
     return {
-
         forma: (pontos / (pesoTotal * 3)) * 100,
-
-        mediaMarcados:
-            golsMarcados / pesoTotal,
-
-        mediaSofridos:
-            golsSofridos / pesoTotal,
-
-        btts:
-            (btts / jogos.length) * 100,
-
-        over25:
-            (over25 / jogos.length) * 100
-
+        mediaMarcados: golsMarcados / pesoTotal,
+        mediaSofridos: golsSofridos / pesoTotal,
+        taxaEmpate: (empates / jogos.length) * 100,
+        btts: (btts / jogos.length) * 100,
+        over25: (over25 / jogos.length) * 100
     };
-
 }
-
 
 // ======================================
 // ESTATÍSTICAS H2H
 // ======================================
 
 function calcularH2H(h2h) {
-
     let venceuA = 0;
     let venceuB = 0;
-
+    let empates = 0;
     let btts = 0;
     let over25 = 0;
 
     h2h.forEach(jogo => {
+        if (jogo.golsA > jogo.golsB) venceuA++;
+        else if (jogo.golsB > jogo.golsA) venceuB++;
+        else empates++;
 
-        if (jogo.golsA > jogo.golsB)
-            venceuA++;
-
-        if (jogo.golsB > jogo.golsA)
-            venceuB++;
-
-        if (jogo.golsA > 0 && jogo.golsB > 0)
-            btts++;
-
-        if ((jogo.golsA + jogo.golsB) > 2)
-            over25++;
-
+        if (jogo.golsA > 0 && jogo.golsB > 0) btts++;
+        if ((jogo.golsA + jogo.golsB) > 2) over25++;
     });
 
     return {
-
         vitoriaA: (venceuA / 5) * 100,
-
         vitoriaB: (venceuB / 5) * 100,
-
+        empate: (empates / 5) * 100,
         btts: (btts / 5) * 100,
-
         over25: (over25 / 5) * 100
-
     };
-
 }
 
-
 // ======================================
-// VITÓRIA TIME A
+// PROBABILIDADES DE RESULTADO FINAL (1X2)
 // ======================================
 
-function calcularVitoriaTimeA(timeA, timeB, h2h) {
-
-    const forcaA =
-        (timeA.forma * 0.40) +
+function calcularProbabilidades1X2(timeA, timeB, h2h) {
+    // Cálculo de Força Bruta
+    let forcaA = (timeA.forma * 0.40) +
         (timeA.mediaMarcados * 20 * 0.25) +
-        ((3 - timeA.mediaSofridos) * 20 * 0.15) +
+        (Math.max(0, 3 - timeA.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaA * 0.20);
 
-    const forcaB =
-        (timeB.forma * 0.40) +
+    let forcaB = (timeB.forma * 0.40) +
         (timeB.mediaMarcados * 20 * 0.25) +
-        ((3 - timeB.mediaSofridos) * 20 * 0.15) +
+        (Math.max(0, 3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20);
 
-    return Math.round(
-        (forcaA / (forcaA + forcaB)) * 100
-    );
+    // Vantagem de Mando de Campo (Time A +12%, Time B -5%)
+    forcaA *= 1.12;
+    forcaB *= 0.95;
 
-}
+    // Estimativa de Tendência ao Empate
+    const tendenciaEmpate = (timeA.taxaEmpate * 0.35) +
+        (timeB.taxaEmpate * 0.35) +
+        (h2h.empate * 0.30);
 
+    // Ajuste da barra de 100% considerando a margem do Empate
+    const probEmpateBruta = Math.min(35, Math.max(18, tendenciaEmpate));
+    const margemVitoria = 100 - probEmpateBruta;
 
-// ======================================
-// VITÓRIA TIME B
-// ======================================
-function calcularVitoriaTimeB(timeA, timeB, h2h) {
+    const probA = Math.round((forcaA / (forcaA + forcaB)) * margemVitoria);
+    const probB = Math.round((forcaB / (forcaA + forcaB)) * margemVitoria);
+    const probEmpate = 100 - (probA + probB);
 
-    const forcaA =
-        (timeA.forma * 0.40) +
-        (timeA.mediaMarcados * 20 * 0.25) +
-        ((3 - timeA.mediaSofridos) * 20 * 0.15) +
-        (h2h.vitoriaA * 0.20);
-
-    const forcaB =
-        (timeB.forma * 0.40) +
-        (timeB.mediaMarcados * 20 * 0.25) +
-        ((3 - timeB.mediaSofridos) * 20 * 0.15) +
-        (h2h.vitoriaB * 0.20);
-
-    return Math.round(
-        (forcaB / (forcaA + forcaB)) * 100
-    );
-
+    return { probA, probB, probEmpate };
 }
 
 // ======================================
-// BTTS
+// MERCADOS DE GOLS
 // ======================================
 
 function calcularBTTS(timeA, timeB, h2h) {
+    let prob = (timeA.btts * 0.35) + (timeB.btts * 0.35) + (h2h.btts * 0.30);
 
-    let probabilidade =
-
-        (timeA.btts * 0.35) +
-        (timeB.btts * 0.35) +
-        (h2h.btts * 0.30);
-
-    if (
-        timeA.mediaMarcados >= 1.5 &&
-        timeB.mediaMarcados >= 1.5
-    ) {
-        probabilidade += 5;
+    // Bônus se ambos possuem boa média de gols
+    if (timeA.mediaMarcados >= 1.2 && timeB.mediaMarcados >= 1.2) {
+        prob += 8;
     }
 
-    return Math.min(
-        Math.round(probabilidade),
-        95
-    );
-
+    return Math.min(Math.round(prob), 92);
 }
-
-
-// ======================================
-// OVER 2.5
-// ======================================
 
 function calcularOver25(timeA, timeB, h2h) {
+    // Baseado na frequência real de jogos com +2.5 gols
+    let prob = (timeA.over25 * 0.35) + (timeB.over25 * 0.35) + (h2h.over25 * 0.30);
 
-    let mediaA =
-        (timeA.mediaMarcados +
-            timeA.mediaSofridos) * 20;
+    // Penalização se as defesas forem muito fechadas
+    if (timeA.mediaSofridos < 0.8 && timeB.mediaSofridos < 0.8) {
+        prob -= 10;
+    }
 
-    let mediaB =
-        (timeB.mediaMarcados +
-            timeB.mediaSofridos) * 20;
-
-    let score = 0;
-
-    score += mediaA * 0.35;
-
-    score += mediaB * 0.35;
-
-    score += h2h.over25 * 0.30;
-
-    return Math.round(
-        Math.max(0, Math.min(100, score))
-    );
-
+    return Math.max(10, Math.min(90, Math.round(prob)));
 }
 
-
 // ======================================
-// ESCOLHER MELHOR
-// ======================================
-
-function escolherMelhorAposta(lista) {
-
-    let melhor = lista[0];
-
-    lista.forEach(item => {
-
-        if (item.probabilidade >
-            melhor.probabilidade) {
-
-            melhor = item;
-
-        }
-
-    });
-
-    return melhor;
-
-}
-
-
-// ======================================
-// ANÁLISE PRINCIPAL
+// ANÁLISE PRINCIPAL E SELEÇÃO DE MERCADO
 // ======================================
 
 function analisarPartida() {
+    const jogosA = obterJogosTime("a");
+    const jogosB = obterJogosTime("b");
+    const h2hJogos = obterH2H();
 
-    const jogosA =
-        obterJogosTime("a");
+    const timeA = calcularEstatisticas(jogosA);
+    const timeB = calcularEstatisticas(jogosB);
+    const h2h = calcularH2H(h2hJogos);
 
-    const jogosB =
-        obterJogosTime("b");
+    const { probA, probB, probEmpate } = calcularProbabilidades1X2(timeA, timeB, h2h);
+    const btts = calcularBTTS(timeA, timeB, h2h);
+    const over25 = calcularOver25(timeA, timeB, h2h);
 
-    const h2hJogos =
-        obterH2H();
+    const mercados = [];
 
-    const timeA =
-        calcularEstatisticas(jogosA);
+    // Seleção Inteligente de Mercados
+    mercados.push({ nome: "Vitória Time A", probabilidade: probA });
 
-    const timeB =
-        calcularEstatisticas(jogosB);
+    // Proteção para o Time B (DNB se probabilidade for razoável, mas incerta)
+    if (probB >= 45 && probB < 60) {
+        mercados.push({
+            nome: "Empate Anula - Time B",
+            probabilidade: Math.round(probB + (probEmpate * 0.6))
+        });
+    } else {
+        mercados.push({ nome: "Vitória Time B", probabilidade: probB });
+    }
 
-    const h2h =
-        calcularH2H(h2hJogos);
+    mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
+    mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
 
-    const vitoriaA =
-        calcularVitoriaTimeA(
-            timeA,
-            timeB,
-            h2h
-        );
+    // Ordenar melhor aposta
+    mercados.sort((a, b) => b.probabilidade - a.probabilidade);
+    const melhor = mercados[0];
 
-    const vitoriaB =
-        calcularVitoriaTimeB(
-            timeA,
-            timeB,
-            h2h
-        );
-
-    const btts =
-        calcularBTTS(
-            timeA,
-            timeB,
-            h2h
-        );
-
-    const over25 =
-        calcularOver25(
-            timeA,
-            timeB,
-            h2h
-        );
-
-    const mercados = [
-
-        {
-            nome: "Vitória Time A",
-            probabilidade: vitoriaA
-        },
-
-        {
-            nome: "Vitória Time B",
-            probabilidade: vitoriaB
-        },
-
-        {
-            nome: "Ambos Marcam",
-            probabilidade: btts
-        },
-
-        {
-            nome: "Over 2.5 Gols",
-            probabilidade: over25
-        }
-
-    ];
-
-    const melhor =
-        escolherMelhorAposta(mercados);
-    const motivos =
-        gerarMotivos(
-            melhor.nome,
-            timeA,
-            timeB,
-            h2h
-        );
-
-    const resultado =
-        document.getElementById("resultado");
+    const resultado = document.getElementById("resultado");
 
     if (melhor.probabilidade < 60) {
-
         resultado.innerHTML = `
-            <h3>⚠️ Sem entrada recomendada</h3>
-            <p>Maior confiança: ${melhor.probabilidade}%</p>
+            <h3>⚠️ Sem entrada segura recomendada</h3>
+            <p>Maior confiança encontrada: <strong>${melhor.nome} (${melhor.probabilidade}%)</strong></p>
         `;
-
         return;
     }
 
     resultado.innerHTML = `
-
-<div class="resultado-top">
-
-    <strong>
-        🔥 ${melhor.nome}
-    </strong>
-
-    <span class="probabilidade">
-        ${melhor.probabilidade}%
-    </span>
-
-</div>
-
-<div class="motivos-box">
-
-    <h3>Motivos</h3>
-
-    <ul>
-        ${motivos.map(
-        motivo => `<li>${motivo}</li>`
-    ).join("")}
-    </ul>
-
-</div>
-
-<div class="cards">
-
-<div class="card">
-    <span>Vitória A</span>
-    <strong>${vitoriaA}%</strong>
-</div>
-
-<div class="card">
-    <span>Vitória B</span>
-    <strong>${vitoriaB}%</strong>
-</div>
-
-<div class="card">
-    <span>BTTS</span>
-    <strong>${btts}%</strong>
-</div>
-
-<div class="card">
-    <span>Over 2.5</span>
-    <strong>${over25}%</strong>
-</div>
-
-</div>
-
-`;
-
+        <div class="resultado-top">
+            <strong>🔥 Sugestão: ${melhor.nome}</strong>
+            <span class="probabilidade">${melhor.probabilidade}%</span>
+        </div>
+        <div class="cards" style="display:flex; gap:10px; margin-top:15px;">
+            <div class="card"><span>Vitória A:</span> <strong>${probA}%</strong></div>
+            <div class="card"><span>Empate:</span> <strong>${probEmpate}%</strong></div>
+            <div class="card"><span>Vitória B:</span> <strong>${probB}%</strong></div>
+            <div class="card"><span>BTTS:</span> <strong>${btts}%</strong></div>
+            <div class="card"><span>Over 2.5:</span> <strong>${over25}%</strong></div>
+        </div>
+    `;
 }
 
 function gerarMotivos(
