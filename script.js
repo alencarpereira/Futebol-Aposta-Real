@@ -166,7 +166,7 @@ function calcularVitoriaTimeA(timeA, timeB, h2h) {
 
 
 // ======================================
-// VITÓRIA TIME B
+// VITÓRIA TIME B (AJUSTADO COM -12% DE MANDO)
 // ======================================
 function calcularVitoriaTimeB(timeA, timeB, h2h) {
 
@@ -176,11 +176,13 @@ function calcularVitoriaTimeB(timeA, timeB, h2h) {
         ((3 - timeA.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaA * 0.20);
 
-    const forcaB =
+    // Multiplica o total da força B por 0.88 (-12%)
+    const forcaB = (
         (timeB.forma * 0.40) +
         (timeB.mediaMarcados * 20 * 0.25) +
         ((3 - timeB.mediaSofridos) * 20 * 0.15) +
-        (h2h.vitoriaB * 0.20);
+        (h2h.vitoriaB * 0.20)
+    ) * 0.88;
 
     return Math.round(
         (forcaB / (forcaA + forcaB)) * 100
