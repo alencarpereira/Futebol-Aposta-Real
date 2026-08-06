@@ -309,6 +309,73 @@ function analisarPartida() {
     `;
 }
 
+// ======================================
+// ANÁLISE EXCLUSIVA DE CONFRONTO DIRETO (H2H)
+// ======================================
+
+function analisarApenasH2H() {
+    const h2hJogos = obterH2H();
+    const h2h = calcularH2H(h2hJogos);
+
+    // Captura taxa de empate real do H2H
+    const taxaEmpateH2H = h2h.empate;
+
+    // Aplica o desconto de 12% na força do visitante no H2H
+    const forcaH2H_A = h2h.vitoriaA;
+    const forcaH2H_B = h2h.vitoriaB * 0.88;
+
+    // Recalcula as probabilidades relativas de vitória
+    const totalForca = forcaH2H_A + forcaH2H_B;
+    const probVitA = totalForca > 0 ? Math.round((forcaH2H_A / totalForca) * 100) : 0;
+    const probVitB = totalForca > 0 ? Math.round((forcaH2H_B / totalForca) * 100) : 0;
+
+    // Lista com todas as alternativas possíveis baseadas no H2H
+    const mercadosH2H = [
+        { nome: "Vitória Time A (H2H)", probabilidade: probVitA },
+        { nome: "Ambos Marcam (H2H)", probabilidade: Math.round(h2h.btts) },
+        { nome: "Over 2.5 Gols (H2H)", probabilidade: Math.round(h2h.over25) }
+    ];
+
+    // Regra DNB para o Time B no H2H
+    if (probVitB >= 60) {
+        mercadosH2H.push({ nome: "Vitória Time B (H2H)", probabilidade: probVitB });
+    } else if (probVitB >= 45) {
+        const probDNB = Math.min(90, Math.round(probVitB + (taxaEmpateH2H * 0.6)));
+        mercadosH2H.push({ nome: "Empate Anula - Time B (H2H)", probabilidade: probDNB });
+    } else {
+        mercadosH2H.push({ nome: "Vitória Time B (H2H)", probabilidade: probVitB });
+    }
+
+    // Seleciona a melhor alternativa do H2H
+    const melhorH2H = escolherMelhorAposta(mercadosH2H);
+
+    // Exibe o resultado na tela
+    const resultado = document.getElementById("resultado");
+
+    if (melhorH2H.probabilidade < 60) {
+        resultado.innerHTML = `
+            <h3>⚠️ H2H inconclusivo (Sem entrada recomendada)</h3>
+            <p>Maior confiança encontrada no H2H: ${melhorH2H.probabilidade}%</p>
+        `;
+        return;
+    }
+
+    resultado.innerHTML = `
+        <div class="resultado-top">
+            <strong>⚔️ Sugestão via H2H: ${melhorH2H.nome}</strong>
+            <span class="probabilidade">${melhorH2H.probabilidade}%</span>
+        </div>
+
+        <div class="cards">
+            <div class="card"><span>Vitória A (H2H)</span><strong>${probVitA}%</strong></div>
+            <div class="card"><span>Vitória B (H2H)</span><strong>${probVitB}%</strong></div>
+            <div class="card"><span>BTTS (H2H)</span><strong>${Math.round(h2h.btts)}%</strong></div>
+            <div class="card"><span>Over 2.5 (H2H)</span><strong>${Math.round(h2h.over25)}%</strong></div>
+            <div class="card"><span>Empates (H2H)</span><strong>${Math.round(h2h.empate)}%</strong></div>
+        </div>
+    `;
+}
+
 function gerarMotivos(mercado, timeA, timeB, h2h) {
 
     const motivos = [];
