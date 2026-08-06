@@ -132,7 +132,7 @@ function calcularVitoriaTimeB(timeA, timeB, h2h) {
         (timeB.mediaMarcados * 20 * 0.25) +
         ((3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20)
-    ) * 0.87;
+    ) * 0.88;
 
     return Math.round(
         (forcaB / (forcaA + forcaB)) * 100
