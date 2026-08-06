@@ -119,21 +119,25 @@ function calcularVitoriaTimeA(timeA, timeB, h2h) {
 // ======================================
 
 function calcularVitoriaTimeB(timeA, timeB, h2h) {
+
     const forcaA =
         (timeA.forma * 0.40) +
         (timeA.mediaMarcados * 20 * 0.25) +
         ((3 - timeA.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaA * 0.20);
 
-    // Força B com leve penalização de visitante (-8%)
+    // Multiplica o total da força B por 0.88 (-12%)
     const forcaB = (
         (timeB.forma * 0.40) +
         (timeB.mediaMarcados * 20 * 0.25) +
         ((3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20)
-    ) * 0.92;
+    ) * 0.88;
 
-    return Math.round((forcaB / (forcaA + forcaB)) * 100);
+    return Math.round(
+        (forcaB / (forcaA + forcaB)) * 100
+    );
+
 }
 
 // ======================================
