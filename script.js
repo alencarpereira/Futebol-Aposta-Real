@@ -310,15 +310,26 @@ function analisarPartida() {
 }
 
 // ======================================
-// ANÁLISE EXCLUSIVA DE CONFRONTO DIRETO (H2H)
+// ANÁLISE EXCLUSIVA DE CONFRONTO DIRETO (H2H) - COM AJUSTE DE COMPETIÇÃO
 // ======================================
 
 function analisarApenasH2H() {
+    // 1. CAPTURA DO TIPO DE COMPETIÇÃO
+    const tipoCompeticao = document.getElementById("tipoCompeticao")?.value || "liga";
+
     const h2hJogos = obterH2H();
     const h2h = calcularH2H(h2hJogos);
 
     // Captura taxa de empate real do H2H
     const taxaEmpateH2H = h2h.empate;
+
+    // 2. APLICA A PONDERAÇÃO MATA-MATA VS LIGA NO H2H
+    let bttsH2H = Math.round(h2h.btts);
+    let over25H2H = Math.round(h2h.over25);
+
+    const ajustes = aplicarAjusteCompeticao(bttsH2H, over25H2H, taxaEmpateH2H, tipoCompeticao);
+    bttsH2H = ajustes.btts;
+    over25H2H = ajustes.over25;
 
     // Aplica o desconto de 12% na força do visitante no H2H
     const forcaH2H_A = h2h.vitoriaA;
@@ -329,11 +340,11 @@ function analisarApenasH2H() {
     const probVitA = totalForca > 0 ? Math.round((forcaH2H_A / totalForca) * 100) : 0;
     const probVitB = totalForca > 0 ? Math.round((forcaH2H_B / totalForca) * 100) : 0;
 
-    // Lista com todas as alternativas possíveis baseadas no H2H
+    // Lista com todas as alternativas possíveis baseadas no H2H ajustado
     const mercadosH2H = [
         { nome: "Vitória Time A (H2H)", probabilidade: probVitA },
-        { nome: "Ambos Marcam (H2H)", probabilidade: Math.round(h2h.btts) },
-        { nome: "Over 2.5 Gols (H2H)", probabilidade: Math.round(h2h.over25) }
+        { nome: "Ambos Marcam (H2H)", probabilidade: bttsH2H },
+        { nome: "Over 2.5 Gols (H2H)", probabilidade: over25H2H }
     ];
 
     // Regra DNB para o Time B no H2H
@@ -369,8 +380,8 @@ function analisarApenasH2H() {
         <div class="cards">
             <div class="card"><span>Vitória A (H2H)</span><strong>${probVitA}%</strong></div>
             <div class="card"><span>Vitória B (H2H)</span><strong>${probVitB}%</strong></div>
-            <div class="card"><span>BTTS (H2H)</span><strong>${Math.round(h2h.btts)}%</strong></div>
-            <div class="card"><span>Over 2.5 (H2H)</span><strong>${Math.round(h2h.over25)}%</strong></div>
+            <div class="card"><span>BTTS (H2H)</span><strong>${bttsH2H}%</strong></div>
+            <div class="card"><span>Over 2.5 (H2H)</span><strong>${over25H2H}%</strong></div>
             <div class="card"><span>Empates (H2H)</span><strong>${Math.round(h2h.empate)}%</strong></div>
         </div>
     `;
