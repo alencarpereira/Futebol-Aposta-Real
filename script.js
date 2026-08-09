@@ -115,29 +115,31 @@ function calcularVitoriaTimeA(timeA, timeB, h2h) {
 }
 
 // ======================================
-// VITÓRIA TIME B (AJUSTADO COM DESCONTO DE MANDO)
+// VITÓRIA TIME B (AJUSTADO COM DESCONTO DE MANDO REALISTA - 20%)
 // ======================================
 
 function calcularVitoriaTimeB(timeA, timeB, h2h) {
-
     const forcaA =
         (timeA.forma * 0.40) +
         (timeA.mediaMarcados * 20 * 0.25) +
         ((3 - timeA.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaA * 0.20);
 
-    // Multiplica o total da força B por 0.88 (-12%)
-    const forcaB = (
+    // Ajustes do Visitante (Time B):
+    // 1. Desconto de mando ajustado para 20% (fator 0.80)
+    // 2. Trava de impacto: se o Time A sofre pouco gol, a força do visitante é atenuada
+    const fatorFiltroDefesaA = Math.max(0.70, 1 - (3 - timeA.mediaSofridos) * 0.10);
+
+    const forcaBrutaB = (
         (timeB.forma * 0.40) +
         (timeB.mediaMarcados * 20 * 0.25) +
         ((3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20)
-    ) * 0.88;
-
-    return Math.round(
-        (forcaB / (forcaA + forcaB)) * 100
     );
 
+    const forcaB = forcaBrutaB * 0.80 * fatorFiltroDefesaA;
+
+    return Math.round((forcaB / (forcaA + forcaB)) * 100);
 }
 
 // ======================================
@@ -254,15 +256,16 @@ function analisarPartida() {
         { nome: "Over 2.5 Gols", probabilidade: over25 }
     ];
 
-    // --- REGRA EXCLUSIVA PARA O TIME B ---
-    if (vitoriaB >= 60) {
-        // Super favorito -> Mantém Vitória Seca
+    // --- REGRA REFINADA PARA O TIME B ---
+    if (vitoriaB >= 65) {
+        // Exige 65%+ para Vitória Seca do Visitante (antes era 60%)
         mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
-    } else if (vitoriaB >= 45) {
-        // Faixa de Risco (45% a 59%) -> Converte para Empate Anula (DNB)
-        const probDNB = Math.min(90, Math.round(vitoriaB + (taxaEmpateConfronto * 0.6)));
+    } else if (vitoriaB >= 50) {
+        // Eleva a barra mínima do DNB de 45% para 50%
+        const probDNB = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.5)));
         mercados.push({ nome: "Empate Anula - Time B", probabilidade: probDNB });
     } else {
+        // Se for menor que 50%, mantém a porcentagem real (ficará abaixo do filtro de 60% e descartará a aposta)
         mercados.push({ nome: "Vitória Time B", probabilidade: vitoriaB });
     }
 
@@ -310,7 +313,7 @@ function analisarPartida() {
 }
 
 // ======================================
-// ANÁLISE EXCLUSIVA DE CONFRONTO DIRETO (H2H) - COM AJUSTE DE COMPETIÇÃO
+// ANÁLISE EXCLUSIVA DE CONFRONTO DIRETO (H2H) - ATUALIZADA
 // ======================================
 
 function analisarApenasH2H() {
@@ -320,7 +323,6 @@ function analisarApenasH2H() {
     const h2hJogos = obterH2H();
     const h2h = calcularH2H(h2hJogos);
 
-    // Captura taxa de empate real do H2H
     const taxaEmpateH2H = h2h.empate;
 
     // 2. APLICA A PONDERAÇÃO MATA-MATA VS LIGA NO H2H
@@ -331,27 +333,27 @@ function analisarApenasH2H() {
     bttsH2H = ajustes.btts;
     over25H2H = ajustes.over25;
 
-    // Aplica o desconto de 12% na força do visitante no H2H
+    // 3. APLICA O NOVO DESCONTO DE MANDO DE 20% NO VISITANTE (FATOR 0.80)
     const forcaH2H_A = h2h.vitoriaA;
-    const forcaH2H_B = h2h.vitoriaB * 0.88;
+    const forcaH2H_B = h2h.vitoriaB * 0.80;
 
     // Recalcula as probabilidades relativas de vitória
     const totalForca = forcaH2H_A + forcaH2H_B;
     const probVitA = totalForca > 0 ? Math.round((forcaH2H_A / totalForca) * 100) : 0;
     const probVitB = totalForca > 0 ? Math.round((forcaH2H_B / totalForca) * 100) : 0;
 
-    // Lista com todas as alternativas possíveis baseadas no H2H ajustado
+    // Lista com todas as alternativas possíveis
     const mercadosH2H = [
         { nome: "Vitória Time A (H2H)", probabilidade: probVitA },
         { nome: "Ambos Marcam (H2H)", probabilidade: bttsH2H },
         { nome: "Over 2.5 Gols (H2H)", probabilidade: over25H2H }
     ];
 
-    // Regra DNB para o Time B no H2H
-    if (probVitB >= 60) {
+    // 4. REGRA REFINADA DNB PARA TIME B NO H2H (MÍNIMO 50% / VITÓRIA SECA 65%)
+    if (probVitB >= 65) {
         mercadosH2H.push({ nome: "Vitória Time B (H2H)", probabilidade: probVitB });
-    } else if (probVitB >= 45) {
-        const probDNB = Math.min(90, Math.round(probVitB + (taxaEmpateH2H * 0.6)));
+    } else if (probVitB >= 50) {
+        const probDNB = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.5)));
         mercadosH2H.push({ nome: "Empate Anula - Time B (H2H)", probabilidade: probDNB });
     } else {
         mercadosH2H.push({ nome: "Vitória Time B (H2H)", probabilidade: probVitB });
