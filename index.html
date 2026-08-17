@@ -21,11 +21,28 @@
     <section>
         <h2>Informações da Partida</h2>
 
-        <label>Nome do Time A</label>
+        <label for="timeA">Nome do Time A (Mandante)</label>
         <input type="text" id="timeA" placeholder="Ex: Flamengo">
 
-        <label>Nome do Time B</label>
+        <label for="timeB">Nome do Time B (Visitante)</label>
         <input type="text" id="timeB" placeholder="Ex: Palmeiras">
+    </section>
+
+    <!-- NOVA SEÇÃO: ODDS DAS CASAS DE APOSTAS -->
+    <section>
+        <h2>📊 Odds do Mercado 1X2 (Opcional)</h2>
+        <div>
+            <label for="oddA">Odd Vitória Time A:</label>
+            <input type="number" id="oddA" step="0.01" placeholder="Ex: 2.10">
+        </div>
+        <div>
+            <label for="oddEmpate">Odd Empate:</label>
+            <input type="number" id="oddEmpate" step="0.01" placeholder="Ex: 3.20">
+        </div>
+        <div>
+            <label for="oddB">Odd Vitória Time B:</label>
+            <input type="number" id="oddB" step="0.01" placeholder="Ex: 3.50">
+        </div>
     </section>
 
     <section>
@@ -46,25 +63,21 @@
                     <td><input type="number" id="a_m1" min="0"></td>
                     <td><input type="number" id="a_s1" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 2</td>
                     <td><input type="number" id="a_m2" min="0"></td>
                     <td><input type="number" id="a_s2" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 3</td>
                     <td><input type="number" id="a_m3" min="0"></td>
                     <td><input type="number" id="a_s3" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 4</td>
                     <td><input type="number" id="a_m4" min="0"></td>
                     <td><input type="number" id="a_s4" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 5</td>
                     <td><input type="number" id="a_m5" min="0"></td>
@@ -92,25 +105,21 @@
                     <td><input type="number" id="b_m1" min="0"></td>
                     <td><input type="number" id="b_s1" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 2</td>
                     <td><input type="number" id="b_m2" min="0"></td>
                     <td><input type="number" id="b_s2" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 3</td>
                     <td><input type="number" id="b_m3" min="0"></td>
                     <td><input type="number" id="b_s3" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 4</td>
                     <td><input type="number" id="b_m4" min="0"></td>
                     <td><input type="number" id="b_s4" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>Jogo 5</td>
                     <td><input type="number" id="b_m5" min="0"></td>
@@ -138,25 +147,21 @@
                     <td><input type="number" id="h_a1" min="0"></td>
                     <td><input type="number" id="h_b1" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>H2H 2</td>
                     <td><input type="number" id="h_a2" min="0"></td>
                     <td><input type="number" id="h_b2" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>H2H 3</td>
                     <td><input type="number" id="h_a3" min="0"></td>
                     <td><input type="number" id="h_b3" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>H2H 4</td>
                     <td><input type="number" id="h_a4" min="0"></td>
                     <td><input type="number" id="h_b4" min="0"></td>
                 </tr>
-
                 <tr>
                     <td>H2H 5</td>
                     <td><input type="number" id="h_a5" min="0"></td>
@@ -166,44 +171,28 @@
         </table>
     </section>
 
-    <button id="testeBtn">
-        ⚡ Preencher Exemplo
-    </button>
+    <br>
+    <button id="testeBtn">⚡ Preencher Exemplo</button>
     <br>
     <br>
-    <button id="analisarBtn">
-        🔍 Analisar Partida
-    </button>
+    <button id="analisarBtn" onclick="analisarPartida()">🔍 Analisar Partida</button>
     <br>
     <br>
-
     <button onclick="analisarApenasH2H()">⚔️ Analisar Só H2H</button>
     <br>
     <br>
-
-    <button id="limparBtn">
-        🗑️ Limpar
-    </button>
-    <br>
-    <br>
+    <button id="limparBtn">🗑️ Limpar</button>
+    <br><br>
 
     <section>
         <h2>Resultado da Análise</h2>
 
         <div id="resultado">
-
             <p>Aguardando análise...</p>
-
-            <br>
-
             <div id="melhorMercado"></div>
-
             <div id="confianca"></div>
-
             <div id="detalhes"></div>
-
         </div>
-
     </section>
 
     <script src="script.js"></script>
