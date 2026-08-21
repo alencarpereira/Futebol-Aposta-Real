@@ -147,7 +147,6 @@ function calcularForcasGerais(timeA, timeB, h2h) {
         (Math.max(0, 3 - timeB.mediaSofridos) * 20 * 0.15) +
         (h2h.vitoriaB * 0.20);
 
-    // Ajuste suave de mando/visitante para não penalizar visitantes ofensivos
     forcaA = forcaA * 1.03; // +3% Mandante
     forcaB = forcaB * 0.96; // -4% Visitante
 
@@ -209,13 +208,9 @@ function calcularOver25(timeA, timeB, h2h) {
 function escolherMelhorAposta(lista) {
     if (!lista || lista.length === 0) return { nome: "Nenhuma", probabilidade: 0 };
 
-    // Busca as opções de BTTS e Over 2.5 dentro da lista recebida
     let apostaOver = lista.find(item => item.nome.includes("Over 2.5"));
     let apostaBTTS = lista.find(item => item.nome.includes("Ambos Marcam"));
 
-    // REGRA DE DESTRAVAMENTO DO OVER 2.5:
-    // Se o Over 2.5 atingiu a trava mínima de confiança (68%)
-    // e está muito próximo do BTTS (diferença de no máximo 5%), prioriza o Over 2.5
     if (apostaOver && apostaBTTS) {
         if (apostaOver.probabilidade >= 68 && apostaOver.probabilidade >= (apostaBTTS.probabilidade - 5)) {
             return {
@@ -225,7 +220,6 @@ function escolherMelhorAposta(lista) {
         }
     }
 
-    // Caso não entre na regra especial de Over 2.5, mantém a lógica de pegar a maior probabilidade
     let melhor = lista[0];
     lista.forEach(item => {
         if (item.probabilidade > melhor.probabilidade) {
@@ -296,32 +290,35 @@ function analisarPartida() {
         { nome: "Over 2.5 Gols", probabilidade: over25 }
     ];
 
-    if (vitoriaA >= 65) {
-        if (h2h.vitoriaA < 40) {
-            const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.5)));
-            mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
-        } else {
+    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
+    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
+
+    // --- TIME A ---
+    if (oddA >= 1.30 && oddA <= 1.60) {
+        // Na faixa 1.30 a 1.60: DNB FICA FORA. Entra Vitória Seca se probabilidade >= 65%
+        if (vitoriaA >= 65 && h2h.vitoriaA >= 40) {
             mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
         }
-    } else if (vitoriaA >= 50) {
-        const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.5)));
+    } else if (vitoriaA >= 58) {
+        // Fora da faixa (odd > 1.60 ou sem odds): entra DNB como proteção
+        const probDNB_A = Math.min(85, Math.round(vitoriaA + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
-    if (vitoriaB >= 65) {
-        if (h2h.vitoriaB < 40) {
-            const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.5)));
-            mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
-        } else {
+    // --- TIME B ---
+    if (oddB >= 1.30 && oddB <= 1.60) {
+        // Na faixa 1.30 a 1.60: DNB FICA FORA. Entra Vitória Seca se probabilidade >= 65%
+        if (vitoriaB >= 65 && h2h.vitoriaB >= 40) {
             mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
         }
-    } else if (vitoriaB >= 50) {
-        const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.5)));
+    } else if (vitoriaB >= 58) {
+        // Fora da faixa (odd > 1.60 ou sem odds): entra DNB como proteção
+        const probDNB_B = Math.min(85, Math.round(vitoriaB + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
 
     const melhor = escolherMelhorAposta(mercados);
-    const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB);
+    const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
     if (melhor.probabilidade < 68) {
@@ -360,6 +357,7 @@ function analisarPartida() {
 // ======================================
 // ANÁLISE EXCLUSIVA H2H
 // ======================================
+
 function analisarApenasH2H() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -371,7 +369,6 @@ function analisarApenasH2H() {
     const h2h = calcularH2H(h2hJogos);
     const taxaEmpateH2H = h2h.empate;
 
-    // 1. EXTRAÇÃO DE DADOS DE GOLS BASEADOS NO H2H (Para alimentar o gerador de motivos corretamente)
     const totalJogosH2H = h2hJogos.length || 1;
     let somaGolsA = 0;
     let somaGolsB = 0;
@@ -404,7 +401,6 @@ function analisarApenasH2H() {
     bttsH2H = ajustes.btts;
     over25H2H = ajustes.over25;
 
-    // 2. PROBABILIDADE BRUTA CONSIDERANDO EMPATES (Base 100%)
     let probVitA = Math.round(h2h.vitoriaA);
     let probVitB = Math.round(h2h.vitoriaB);
 
@@ -413,38 +409,36 @@ function analisarApenasH2H() {
         probVitB = Math.round((mercadoOdds.probMercadoB * 0.65) + (probVitB * 0.35));
     }
 
-    // 3. MERCADOS COM NORMAS PADRÃO (Para compatibilidade com escolherMelhorAposta)
     const mercadosH2H = [
         { nome: "Ambos Marcam", probabilidade: bttsH2H },
         { nome: "Over 2.5 Gols", probabilidade: over25H2H }
     ];
 
-    if (probVitA >= 65) {
-        if (h2h.vitoriaA < 40) {
-            const probDNB_A = Math.min(88, Math.round(probVitA + (taxaEmpateH2H * 0.5)));
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
-        } else {
+    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
+    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
+    // --- TIME A (H2H) ---
+    if (oddA >= 1.30 && oddA <= 1.60) {
+        if (probVitA >= 65 && h2h.vitoriaA >= 40) {
             mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
         }
-    } else if (probVitA >= 50) {
-        const probDNB_A = Math.min(88, Math.round(probVitA + (taxaEmpateH2H * 0.5)));
+    } else if (probVitA >= 58) {
+        const probDNB_A = Math.min(85, Math.round(probVitA + (taxaEmpateH2H * 0.25)));
         mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
-    if (probVitB >= 65) {
-        if (h2h.vitoriaB < 40) {
-            const probDNB_B = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.5)));
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
-        } else {
+    // --- TIME B (H2H) ---
+    if (oddB >= 1.30 && oddB <= 1.60) {
+        if (probVitB >= 65 && h2h.vitoriaB >= 40) {
             mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
         }
-    } else if (probVitB >= 50) {
-        const probDNB_B = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.5)));
+    } else if (probVitB >= 58) {
+        const probDNB_B = Math.min(85, Math.round(probVitB + (taxaEmpateH2H * 0.25)));
         mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
 
     const melhorH2H = escolherMelhorAposta(mercadosH2H);
-    const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB);
+    // CORRIGIDO AQUI: Usa melhorH2H, timeA_H2H e timeB_H2H
+    const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
     if (melhorH2H.probabilidade < 68) {
@@ -484,10 +478,12 @@ function analisarApenasH2H() {
 // GERADOR DE MOTIVOS
 // ======================================
 
-function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB) {
+function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds = null) {
     const motivos = [];
-    // Remove a tag (H2H) para não quebrar a busca pelo nome do time
-    const mercadoLimpo = mercado.replace(" (H2H)", "");
+    const mercadoLimpo = mercado.replace(" (H2H)", "").replace("⚔️ Sugestão via H2H + Mercado: ", "").trim();
+
+    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
+    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     if (mercadoLimpo === "Ambos Marcam") {
         if (timeA.btts >= 60) motivos.push(`✓ ${nomeTimeA} teve BTTS em ${Math.round(timeA.btts)}% dos jogos`);
@@ -504,7 +500,12 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB) {
     }
 
     if (mercadoLimpo.includes(nomeTimeA)) {
-        if (mercadoLimpo.includes("Empate Anula")) motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
+        if (mercadoLimpo.includes("Empate Anula")) {
+            motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
+        } else if (oddA >= 1.30 && oddA <= 1.60) {
+            motivos.push(`🎯 Odd de mercado (${oddA.toFixed(2)}) confirma alto favoritismo e aponta valor em Vitória Seca`);
+        }
+
         if (timeA.forma > timeB.forma) motivos.push(`✓ ${nomeTimeA} possui melhor forma recente`);
         if (timeA.mediaMarcados > timeB.mediaMarcados) motivos.push(`✓ ${nomeTimeA} possui ataque mais eficiente`);
         if (timeA.mediaSofridos < timeB.mediaSofridos) motivos.push(`✓ ${nomeTimeA} possui defesa mais sólida`);
@@ -512,7 +513,12 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB) {
     }
 
     if (mercadoLimpo.includes(nomeTimeB)) {
-        if (mercadoLimpo.includes("Empate Anula")) motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
+        if (mercadoLimpo.includes("Empate Anula")) {
+            motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
+        } else if (oddB >= 1.30 && oddB <= 1.60) {
+            motivos.push(`🎯 Odd de mercado (${oddB.toFixed(2)}) confirma alto favoritismo e aponta valor em Vitória Seca`);
+        }
+
         if (timeB.forma > timeA.forma) motivos.push(`✓ ${nomeTimeB} possui melhor forma recente`);
         if (timeB.mediaMarcados > timeA.mediaMarcados) motivos.push(`✓ ${nomeTimeB} possui ataque mais eficiente`);
         if (timeB.mediaSofridos < timeA.mediaSofridos) motivos.push(`✓ ${nomeTimeB} possui defesa mais sólida`);
