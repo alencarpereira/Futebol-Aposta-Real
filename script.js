@@ -40,6 +40,10 @@ function obterProbabilidadesMercado() {
     const oddEmpate = parseInputNumber("oddEmpate");
     const oddB = parseInputNumber("oddB");
 
+    // Novas Odds de Gols
+    const oddOver25 = parseInputNumber("oddOver25");
+    const oddBTTS = parseInputNumber("oddBTTS");
+
     if (!oddA || !oddB || !oddEmpate) return null;
 
     const probBrutaA = 1 / oddA;
@@ -51,6 +55,8 @@ function obterProbabilidadesMercado() {
         oddA,
         oddEmpate,
         oddB,
+        oddOver25, // retorna 0 se não preenchida
+        oddBTTS,   // retorna 0 se não preenchida
         probMercadoA: (probBrutaA / somaMargin) * 100,
         probMercadoB: (probBrutaB / somaMargin) * 100,
         probMercadoE: (probBrutaE / somaMargin) * 100
@@ -409,13 +415,20 @@ function analisarApenasH2H() {
         probVitB = Math.round((mercadoOdds.probMercadoB * 0.65) + (probVitB * 0.35));
     }
 
-    const mercadosH2H = [
-        { nome: "Ambos Marcam", probabilidade: bttsH2H },
-        { nome: "Over 2.5 Gols", probabilidade: over25H2H }
-    ];
+    const mercadosH2H = [];
+
+    // --- TRAVA DE GOLS NO H2H (Só entram se baterem no mínimo 80% dos confrontos) ---
+    if (h2h.btts >= 80) {
+        mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
+    }
+
+    if (h2h.over25 >= 80) {
+        mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
+    }
 
     const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
+
     // --- TIME A (H2H) ---
     if (oddA >= 1.30 && oddA <= 1.60) {
         if (probVitA >= 65 && h2h.vitoriaA >= 40) {
@@ -437,14 +450,14 @@ function analisarApenasH2H() {
     }
 
     const melhorH2H = escolherMelhorAposta(mercadosH2H);
-    // CORRIGIDO AQUI: Usa melhorH2H, timeA_H2H e timeB_H2H
     const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
-    if (melhorH2H.probabilidade < 68) {
+    // TRAVA FINAL DE CORTE NO H2H: Exige 75% de confiança mínima para aprovar a aposta
+    if (melhorH2H.probabilidade < 75) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Confiança abaixo de 68%. Maior encontrada: <strong>${melhorH2H.probabilidade}%</strong></p>
+            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 75%). Maior encontrada: <strong>${melhorH2H.probabilidade}%</strong></p>
         `;
         return;
     }
@@ -555,6 +568,10 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("oddA").value = "2.10";
             document.getElementById("oddEmpate").value = "3.20";
             document.getElementById("oddB").value = "3.50";
+
+            // Preenchimento automático das novas odds de gols
+            if (document.getElementById("oddOver25")) document.getElementById("oddOver25").value = "1.85";
+            if (document.getElementById("oddBTTS")) document.getElementById("oddBTTS").value = "1.80";
 
             const a_m = [2, 1, 3, 0, 2];
             const a_s = [1, 0, 0, 1, 2];
