@@ -309,11 +309,11 @@ function analisarPartida() {
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A ---
-    if (oddA >= 1.30 && oddA <= 1.60 && vitoriaA >= 65 && h2h.vitoriaA >= 40) {
-        // Vitória Seca padrão (super favorito em odd baixa)
+    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 65 && h2h.vitoriaA >= 40) {
+        // Vitória Seca padrão (favorito/super favorito)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
-    } else if (oddA > 1.60 && vitoriaA >= 70) {
-        // Vitória Seca em Odd alta (Valor alto + Confiança muito alta)
+    } else if (oddA > 1.70 && vitoriaA >= 70) {
+        // Vitória Seca em Odd mais alta (Valor alto + Confiança muito alta)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
     } else if (vitoriaA >= 58) {
         // Proteção DNB para os demais casos com boa probabilidade
@@ -322,11 +322,11 @@ function analisarPartida() {
     }
 
     // --- TIME B ---
-    if (oddB >= 1.30 && oddB <= 1.60 && vitoriaB >= 65 && h2h.vitoriaB >= 40) {
+    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 65 && h2h.vitoriaB >= 40) {
         // Vitória Seca padrão
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
-    } else if (oddB > 1.60 && vitoriaB >= 70) {
-        // Vitória Seca em Odd alta
+    } else if (oddB > 1.70 && vitoriaB >= 70) {
+        // Vitória Seca em Odd mais alta
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
     } else if (vitoriaB >= 58) {
         // Proteção DNB
@@ -445,9 +445,9 @@ function analisarApenasH2H() {
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A (Versão H2H) ---
-    if (oddA >= 1.30 && oddA <= 1.60 && probVitA >= 65 && h2h.vitoriaA >= 40) {
+    if (oddA >= 1.30 && oddA <= 1.70 && probVitA >= 65 && h2h.vitoriaA >= 40) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-    } else if (oddA > 1.60 && probVitA >= 70) {
+    } else if (oddA > 1.70 && probVitA >= 70) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
     } else if (probVitA >= 58) {
         const probDNB_A = Math.min(85, Math.round(probVitA + (taxaEmpateH2H * 0.25)));
@@ -455,9 +455,9 @@ function analisarApenasH2H() {
     }
 
     // --- TIME B (Versão H2H) ---
-    if (oddB >= 1.30 && oddB <= 1.60 && probVitB >= 65 && h2h.vitoriaB >= 40) {
+    if (oddB >= 1.30 && oddB <= 1.70 && probVitB >= 65 && h2h.vitoriaB >= 40) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-    } else if (oddB > 1.60 && probVitB >= 70) {
+    } else if (oddB > 1.70 && probVitB >= 70) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
     } else if (probVitB >= 58) {
         const probDNB_B = Math.min(85, Math.round(probVitB + (taxaEmpateH2H * 0.25)));
