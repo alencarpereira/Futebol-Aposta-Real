@@ -263,7 +263,6 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, tipoCompeticao) {
 // ======================================
 // FUNÇÃO PRINCIPAL DE ANÁLISE
 // ======================================
-
 function analisarPartida() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -291,49 +290,57 @@ function analisarPartida() {
     btts = ajustes.btts;
     over25 = ajustes.over25;
 
-    const mercados = [
-        { nome: "Ambos Marcam", probabilidade: btts },
-        { nome: "Over 2.5 Gols", probabilidade: over25 }
-    ];
+    // Captura das Odds de Gols (0 se não preenchidas)
+    const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
+    const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
+
+    const mercados = [];
+
+    // --- TRAVA DE GOLS: Só entram se a Odd for <= 1.85 (ou sem odd informada) ---
+    if (oddBTTS === 0 || oddBTTS <= 1.85) {
+        mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
+    }
+
+    if (oddOver25 === 0 || oddOver25 <= 1.85) {
+        mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
+    }
 
     const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A ---
     if (oddA >= 1.30 && oddA <= 1.60) {
-        // Na faixa 1.30 a 1.60: DNB FICA FORA. Entra Vitória Seca se probabilidade >= 65%
         if (vitoriaA >= 65 && h2h.vitoriaA >= 40) {
             mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
         }
     } else if (vitoriaA >= 58) {
-        // Fora da faixa (odd > 1.60 ou sem odds): entra DNB como proteção
         const probDNB_A = Math.min(85, Math.round(vitoriaA + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
     // --- TIME B ---
     if (oddB >= 1.30 && oddB <= 1.60) {
-        // Na faixa 1.30 a 1.60: DNB FICA FORA. Entra Vitória Seca se probabilidade >= 65%
         if (vitoriaB >= 65 && h2h.vitoriaB >= 40) {
             mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
         }
     } else if (vitoriaB >= 58) {
-        // Fora da faixa (odd > 1.60 ou sem odds): entra DNB como proteção
         const probDNB_B = Math.min(85, Math.round(vitoriaB + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
 
     const melhor = escolherMelhorAposta(mercados);
-    const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
-    if (melhor.probabilidade < 68) {
+    // TRAVA DE SEGURANÇA: Se a lista estiver vazia ("Nenhuma") ou abaixo de 68%
+    if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 68) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
-            <p>Confiança abaixo do limite de segurança (Mínimo: 68%). Maior encontrada: <strong>${melhor.probabilidade}%</strong></p>
+            <p>Confiança abaixo do limite de segurança (Mínimo: 68%) ou odds fora da margem segura. Maior encontrada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
         `;
         return;
     }
+
+    const motivos = gerarMotivos(melhor.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
     resultado.innerHTML = `
         <div class="resultado-top">
@@ -359,14 +366,9 @@ function analisarPartida() {
         </div>
     `;
 }
-
 // ======================================
 // ANÁLISE EXCLUSIVA H2H
 // ======================================
-// ======================================
-// ANÁLISE EXCLUSIVA H2H
-// ======================================
-
 function analisarApenasH2H() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -418,14 +420,18 @@ function analisarApenasH2H() {
         probVitB = Math.round((mercadoOdds.probMercadoB * 0.65) + (probVitB * 0.35));
     }
 
+    // Captura das Odds de Gols (0 se não preenchidas)
+    const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
+    const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
+
     const mercadosH2H = [];
 
-    // --- TRAVA DE GOLS NO H2H (Exige no mínimo 80% de concorrência nos confrontos) ---
-    if (h2h.btts >= 80) {
+    // --- TRAVA DUPLA NO H2H: Exige >= 80% E Odd <= 1.85 (ou sem odd informada) ---
+    if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
         mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
     }
 
-    if (h2h.over25 >= 80) {
+    if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
     }
 
@@ -453,17 +459,18 @@ function analisarApenasH2H() {
     }
 
     const melhorH2H = escolherMelhorAposta(mercadosH2H);
-    const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA FINAL AJUSTADA PARA 68%: Permite aprovação de Vitória e DNB com boa margem
-    if (melhorH2H.probabilidade < 68) {
+    // TRAVA DE SEGURANÇA: Bloqueia caso a lista fique vazia ("Nenhuma") ou abaixo de 68%
+    if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 68) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 68%). Maior encontrada: <strong>${melhorH2H.probabilidade}%</strong></p>
+            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 68%) ou odds fora da margem estipulada. Maior encontrada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
         `;
         return;
     }
+
+    const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
     resultado.innerHTML = `
         <div class="resultado-top">
