@@ -363,6 +363,9 @@ function analisarPartida() {
 // ======================================
 // ANÁLISE EXCLUSIVA H2H
 // ======================================
+// ======================================
+// ANÁLISE EXCLUSIVA H2H
+// ======================================
 
 function analisarApenasH2H() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
@@ -417,7 +420,7 @@ function analisarApenasH2H() {
 
     const mercadosH2H = [];
 
-    // --- TRAVA DE GOLS NO H2H (Só entram se baterem no mínimo 80% dos confrontos) ---
+    // --- TRAVA DE GOLS NO H2H (Exige no mínimo 80% de concorrência nos confrontos) ---
     if (h2h.btts >= 80) {
         mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
     }
@@ -453,11 +456,11 @@ function analisarApenasH2H() {
     const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA FINAL DE CORTE NO H2H: Exige 75% de confiança mínima para aprovar a aposta
-    if (melhorH2H.probabilidade < 75) {
+    // TRAVA FINAL AJUSTADA PARA 68%: Permite aprovação de Vitória e DNB com boa margem
+    if (melhorH2H.probabilidade < 68) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 75%). Maior encontrada: <strong>${melhorH2H.probabilidade}%</strong></p>
+            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 68%). Maior encontrada: <strong>${melhorH2H.probabilidade}%</strong></p>
         `;
         return;
     }
