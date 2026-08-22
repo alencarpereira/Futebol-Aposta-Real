@@ -11,10 +11,16 @@ function parseInputNumber(id) {
 function obterJogosTime(prefixo) {
     const jogos = [];
     for (let i = 1; i <= 5; i++) {
-        jogos.push({
-            marcou: parseInputNumber(`${prefixo}_m${i}`),
-            sofreu: parseInputNumber(`${prefixo}_s${i}`)
-        });
+        const inputM = document.getElementById(`${prefixo}_m${i}`)?.value;
+        const inputS = document.getElementById(`${prefixo}_s${i}`)?.value;
+
+        // Só adiciona a partida se AMBOS os placares forem informados
+        if (inputM !== "" && inputS !== "" && inputM !== undefined && inputS !== undefined) {
+            jogos.push({
+                marcou: parseInputNumber(`${prefixo}_m${i}`),
+                sofreu: parseInputNumber(`${prefixo}_s${i}`)
+            });
+        }
     }
     return jogos;
 }
