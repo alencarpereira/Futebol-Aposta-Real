@@ -338,7 +338,7 @@ function analisarPartida() {
     const resultado = document.getElementById("resultado");
 
     // TRAVA DE SEGURANÇA: Se a lista estiver vazia ("Nenhuma") ou abaixo de 68%
-    if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 68) {
+    if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
             <p>Confiança abaixo do limite de segurança (Mínimo: 68%) ou odds fora da margem segura. Maior encontrada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
@@ -468,7 +468,7 @@ function analisarApenasH2H() {
     const resultado = document.getElementById("resultado");
 
     // TRAVA DE SEGURANÇA: Bloqueia caso a lista fique vazia ("Nenhuma") ou abaixo de 68%
-    if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 68) {
+    if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
             <p>Confiança abaixo do limite seguro para H2H (Mínimo: 68%) ou odds fora da margem estipulada. Maior encontrada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
