@@ -315,27 +315,41 @@ function analisarPartida() {
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A ---
-    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 65 && h2h.vitoriaA >= 40) {
-        // Vitória Seca padrão (favorito/super favorito)
+    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 58) {
+        // Vitória Seca direta para odds de valor intermediário
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
     } else if (oddA > 1.70 && vitoriaA >= 70) {
-        // Vitória Seca em Odd mais alta (Valor alto + Confiança muito alta)
+        // Vitória Seca para odds mais altas (exige confiança maior)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
-    } else if (vitoriaA >= 58) {
-        // Proteção DNB para os demais casos com boa probabilidade
+    } else if (oddA > 0 && oddA < 1.30) {
+        // Super favorito: busca apenas mercados de gols de valor
+        if (over25 >= 65) {
+            mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
+        } else if (btts >= 65) {
+            mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
+        }
+    } else if (oddA > 1.70 && vitoriaA >= 58) {
+        // Proteção DNB restrita apenas para Odds maiores que 1.70 com probabilidade moderada
         const probDNB_A = Math.min(85, Math.round(vitoriaA + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
     // --- TIME B ---
-    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 65 && h2h.vitoriaB >= 40) {
-        // Vitória Seca padrão
+    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 58) {
+        // Vitória Seca direta
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
     } else if (oddB > 1.70 && vitoriaB >= 70) {
-        // Vitória Seca em Odd mais alta
+        // Vitória Seca para odds mais altas
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
-    } else if (vitoriaB >= 58) {
-        // Proteção DNB
+    } else if (oddB > 0 && oddB < 1.30) {
+        // Super favorito
+        if (over25 >= 65) {
+            mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
+        } else if (btts >= 65) {
+            mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
+        }
+    } else if (oddB > 1.70 && vitoriaB >= 58) {
+        // Proteção DNB apenas para Odds > 1.70
         const probDNB_B = Math.min(85, Math.round(vitoriaB + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
@@ -343,11 +357,11 @@ function analisarPartida() {
     const melhor = escolherMelhorAposta(mercados);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA DE SEGURANÇA: Se a lista estiver vazia ("Nenhuma") ou abaixo de 68%
+    // TRAVA DE SEGURANÇA: Se a lista estiver vazia ("Nenhuma") ou abaixo de 65%
     if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
-            <p>Confiança abaixo do limite de segurança (Mínimo: 68%) ou odds fora da margem segura. Maior encontrada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
+            <p>Confiança abaixo do limite de segurança (Mínimo: 65%) ou odds fora da margem segura. Maior encontrada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
         `;
         return;
     }
@@ -432,7 +446,6 @@ function analisarApenasH2H() {
         probVitB = Math.round((mercadoOdds.probMercadoB * 0.65) + (probVitB * 0.35));
     }
 
-    // Captura das Odds de Gols (0 se não preenchidas)
     const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
     const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
 
@@ -451,21 +464,35 @@ function analisarApenasH2H() {
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A (Versão H2H) ---
-    if (oddA >= 1.30 && oddA <= 1.70 && probVitA >= 65 && h2h.vitoriaA >= 40) {
+    if (oddA >= 1.30 && oddA <= 1.70 && probVitA >= 58) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
     } else if (oddA > 1.70 && probVitA >= 70) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-    } else if (probVitA >= 58) {
+    } else if (oddA > 0 && oddA < 1.30) {
+        // Super favorito: busca mercados de gols respeitando a regra estrita de >= 80% do H2H
+        if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
+            mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
+        } else if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+            mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
+        }
+    } else if (oddA > 1.70 && probVitA >= 58) {
         const probDNB_A = Math.min(85, Math.round(probVitA + (taxaEmpateH2H * 0.25)));
         mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
     // --- TIME B (Versão H2H) ---
-    if (oddB >= 1.30 && oddB <= 1.70 && probVitB >= 65 && h2h.vitoriaB >= 40) {
+    if (oddB >= 1.30 && oddB <= 1.70 && probVitB >= 58) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
     } else if (oddB > 1.70 && probVitB >= 70) {
         mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-    } else if (probVitB >= 58) {
+    } else if (oddB > 0 && oddB < 1.30) {
+        // Super favorito
+        if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
+            mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
+        } else if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+            mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
+        }
+    } else if (oddB > 1.70 && probVitB >= 58) {
         const probDNB_B = Math.min(85, Math.round(probVitB + (taxaEmpateH2H * 0.25)));
         mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
@@ -473,11 +500,10 @@ function analisarApenasH2H() {
     const melhorH2H = escolherMelhorAposta(mercadosH2H);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA DE SEGURANÇA: Bloqueia caso a lista fique vazia ("Nenhuma") ou abaixo de 68%
     if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 68%) ou odds fora da margem estipulada. Maior encontrada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
+            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 65%) ou odds fora da margem estipulada. Maior encontrada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
         `;
         return;
     }
