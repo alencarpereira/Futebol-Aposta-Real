@@ -403,8 +403,7 @@ function analisarPartida() {
         </div>
     `;
 }
-// ======================================
-// ANÁLISE EXCLUSIVA H2H
+// ANÁLISE EXCLUSIVA H2H (30% H2H + 70% Mercado/Odds)
 // ======================================
 function analisarApenasH2H() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
@@ -442,79 +441,90 @@ function analisarApenasH2H() {
         over25: h2h.over25
     };
 
+    // 1. Probabilidades Base de Vitória (30% H2H + 70% Odds da Casa)
+    let probVitA = Math.round(h2h.vitoriaA);
+    let probVitB = Math.round(h2h.vitoriaB);
+
+    if (mercadoOdds) {
+        probVitA = Math.round((mercadoOdds.probMercadoA * 0.70) + (probVitA * 0.30));
+        probVitB = Math.round((mercadoOdds.probMercadoB * 0.70) + (probVitB * 0.30));
+    }
+
+    // 2. Probabilidades Base de Gols (30% H2H + 70% Odds de Gols da Casa se existirem)
     let bttsH2H = Math.round(h2h.btts);
     let over25H2H = Math.round(h2h.over25);
+
+    if (mercadoOdds) {
+        if (mercadoOdds.oddBTTS > 0) {
+            const probBTTS_Casa = (1 / mercadoOdds.oddBTTS) * 100;
+            bttsH2H = Math.round((probBTTS_Casa * 0.70) + (bttsH2H * 0.30));
+        }
+        if (mercadoOdds.oddOver25 > 0) {
+            const probOver_Casa = (1 / mercadoOdds.oddOver25) * 100;
+            over25H2H = Math.round((probOver_Casa * 0.70) + (over25H2H * 0.30));
+        }
+    }
 
     const ajustes = aplicarAjusteCompeticao(bttsH2H, over25H2H, taxaEmpateH2H, tipoCompeticao);
     bttsH2H = ajustes.btts;
     over25H2H = ajustes.over25;
 
-    let probVitA = Math.round(h2h.vitoriaA);
-    let probVitB = Math.round(h2h.vitoriaB);
-
-    if (mercadoOdds) {
-        probVitA = Math.round((mercadoOdds.probMercadoA * 0.65) + (probVitA * 0.35));
-        probVitB = Math.round((mercadoOdds.probMercadoB * 0.65) + (probVitB * 0.35));
-    }
-
+    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
+    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
     const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
     const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
 
     const mercadosH2H = [];
 
-    // --- TRAVA DUPLA NO H2H: Exige >= 80% E Odd <= 1.85 (ou sem odd informada) ---
-    if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
-        mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
+    // --- ENQUADRAMENTO NOS MERCADOS BASEADO NAS ODDS E TRAVAS ---
+
+    // A) Mercado de Resultado Principal (Vitória Direta ou Empate Anula)
+    if (probVitA >= probVitB) {
+        if (oddA >= 1.30 && oddA <= 1.85 && probVitA >= 55) {
+            mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
+        } else if (oddA > 1.85 || probVitA < 55) {
+            const probDNB_A = Math.min(88, Math.round(probVitA + (taxaEmpateH2H * 0.30)));
+            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
+        }
+    } else {
+        if (oddB >= 1.30 && oddB <= 1.85 && probVitB >= 55) {
+            mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
+        } else if (oddB > 1.85 || probVitB < 55) {
+            const probDNB_B = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.30)));
+            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
+        }
     }
 
-    if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
+    // B) Mercado de Dupla Chance (Se o jogo for muito parelho)
+    const prob1X = Math.min(92, Math.round(probVitA + (taxaEmpateH2H * 0.60)));
+    const probX2 = Math.min(92, Math.round(probVitB + (taxaEmpateConfronto * 0.60)));
+
+    if (probVitA < 55 && probVitB < 55) {
+        if (prob1X >= probX2) {
+            mercadosH2H.push({ nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X });
+        } else {
+            mercadosH2H.push({ nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2 });
+        }
+    }
+
+    // C) Mercados de Gols (Calibrados a 70% Casa / 30% H2H)
+    if (over25H2H >= 58 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
     }
-
-    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
-    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
-
-    // --- TIME A (Versão H2H) ---
-    if (oddA >= 1.30 && oddA <= 1.70 && probVitA >= 58) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-    } else if (oddA > 1.70 && probVitA >= 70) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-    } else if (oddA > 0 && oddA < 1.30) {
-        // Super favorito: busca mercados de gols respeitando a regra estrita de >= 80% do H2H
-        if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
-            mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
-        } else if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
-            mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
-        }
-    } else if (oddA > 1.70 && probVitA >= 58) {
-        const probDNB_A = Math.min(85, Math.round(probVitA + (taxaEmpateH2H * 0.25)));
-        mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
+    if (bttsH2H >= 58 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+        mercadosH2H.push({ nome: "Ambos Marcam (BTTS)", probabilidade: bttsH2H });
     }
 
-    // --- TIME B (Versão H2H) ---
-    if (oddB >= 1.30 && oddB <= 1.70 && probVitB >= 58) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-    } else if (oddB > 1.70 && probVitB >= 70) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-    } else if (oddB > 0 && oddB < 1.30) {
-        // Super favorito
-        if (h2h.over25 >= 80 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
-            mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
-        } else if (h2h.btts >= 80 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
-            mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
-        }
-    } else if (oddB > 1.70 && probVitB >= 58) {
-        const probDNB_B = Math.min(85, Math.round(probVitB + (taxaEmpateH2H * 0.25)));
-        mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
-    }
+    // Ordena da maior para a menor probabilidade ponderada
+    mercadosH2H.sort((a, b) => b.probabilidade - a.probabilidade);
+    const melhorH2H = mercadosH2H[0];
 
-    const melhorH2H = escolherMelhorAposta(mercadosH2H);
     const resultado = document.getElementById("resultado");
 
-    if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 65) {
+    if (!melhorH2H) {
         resultado.innerHTML = `
             <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Confiança abaixo do limite seguro para H2H (Mínimo: 65%) ou odds fora da margem estipulada. Maior encontrada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
+            <p>Não foi possível encaixar um palpite dentro dos critérios de segurança e odds do mercado.</p>
         `;
         return;
     }
@@ -523,7 +533,7 @@ function analisarApenasH2H() {
 
     resultado.innerHTML = `
         <div class="resultado-top">
-            <strong>⚔️ Sugestão via H2H + Mercado: ${melhorH2H.nome}</strong>
+            <strong>⚔️ Sugestão (30% H2H / 70% Mercado): ${melhorH2H.nome}</strong>
             <span class="probabilidade">${melhorH2H.probabilidade}%</span>
         </div>
 
@@ -532,16 +542,16 @@ function analisarApenasH2H() {
             <ul>
                 ${motivos.length > 0
             ? motivos.map(m => `<li>${m}</li>`).join("")
-            : "<li>✓ Dados de confrontos diretos e odds de mercado favoráveis.</li>"
+            : "<li>✓ Seleção ponderada respeitando o alinhamento das odds do mercado e estatística histórica.</li>"
         }
             </ul>
         </div>
 
         <div class="cards">
-            <div class="card"><span>Vitória ${nomeTimeA} (Ponderada)</span><strong>${probVitA}%</strong></div>
-            <div class="card"><span>Vitória ${nomeTimeB} (Ponderada)</span><strong>${probVitB}%</strong></div>
-            <div class="card"><span>BTTS (H2H)</span><strong>${bttsH2H}%</strong></div>
-            <div class="card"><span>Over 2.5 (H2H)</span><strong>${over25H2H}%</strong></div>
+            <div class="card"><span>Vitória ${nomeTimeA} (30/70)</span><strong>${probVitA}%</strong></div>
+            <div class="card"><span>Vitória ${nomeTimeB} (30/70)</span><strong>${probVitB}%</strong></div>
+            <div class="card"><span>BTTS (Ponderado)</span><strong>${bttsH2H}%</strong></div>
+            <div class="card"><span>Over 2.5 (Ponderado)</span><strong>${over25H2H}%</strong></div>
         </div>
     `;
 }
