@@ -728,8 +728,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Adicionar dentro de document.addEventListener("DOMContentLoaded", () => { ... })
-
     const multiplaBtn = document.getElementById("multiplaBtn");
     if (multiplaBtn) multiplaBtn.addEventListener("click", gerarApostaMultipla);
 
