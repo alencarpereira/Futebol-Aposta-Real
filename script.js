@@ -627,56 +627,10 @@ function gerarApostaMultipla() {
     // Opção 1: Seleção de maior probabilidade
     const opcao1 = mercadosMultipla[0];
 
-    // Extrai o nome limpo dos times para travamentos
-    const eDuplaChance1 = opcao1.nome.includes("Dupla Chance");
-    const eVitoria1 = opcao1.nome.includes("Vitória");
+    // Opção 2: TRAVA ESTRITA - Exige obrigatoriamente que a Opção 2 seja de CATEGORIA DIFERENTE da Opção 1.
+    // Se a Opção 1 for "resultado" (Vitória/Dupla Chance), a Opção 2 OBRIGATORIAMENTE precisa ser "gols" (Over 2.5/BTTS).
+    let opcao2 = mercadosMultipla.find(item => item.tipo !== opcao1.tipo);
 
-    // Opção 2: Busca um mercado SEM conflito estatístico/conceitual
-    let opcao2 = mercadosMultipla.find(item => {
-        if (item.nome === opcao1.nome) return false;
-
-        // 1. Bloqueia Dupla Chance + Vitória do MESMO time ou opostos
-        if (eDuplaChance1 && item.nome.includes("Dupla Chance")) return false;
-        if (eDuplaChance1 && item.nome.includes("Vitória")) {
-            // Se Opção 1 for "Lille ou Empate" e o item for "Vitória Lille", BLOQUEIA (Redundante)
-            if (opcao1.nome.includes(nomeTimeA) && item.nome.includes(nomeTimeA)) return false;
-            if (opcao1.nome.includes(nomeTimeB) && item.nome.includes(nomeTimeB)) return false;
-        }
-
-        // 2. Bloqueia Vitória + Dupla Chance do MESMO time
-        if (eVitoria1 && item.nome.includes("Dupla Chance")) {
-            if (opcao1.nome.includes(nomeTimeA) && item.nome.includes(nomeTimeA)) return false;
-            if (opcao1.nome.includes(nomeTimeB) && item.nome.includes(nomeTimeB)) return false;
-        }
-
-        // 3. Prioriza par perfeito (Se Opção 1 for Resultado, busca Gols)
-        if (opcao1.tipo === "resultado" && item.tipo === "gols") return true;
-        if (opcao1.tipo === "gols" && item.tipo === "resultado") return true;
-
-        return item.tipo !== opcao1.tipo;
-    });
-
-    // Backup seguro: Se não houver gols e o mercado de vitória for redundante, NÃO EXIBE OPÇÃO 2
-    if (!opcao2 && mercadosMultipla.length > 1) {
-        opcao2 = mercadosMultipla.find(item => {
-            if (item.nome === opcao1.nome) return false;
-            if (eDuplaChance1 && item.nome.includes("Dupla Chance")) return false;
-            if (eDuplaChance1 && item.nome.includes("Vitória")) {
-                if (opcao1.nome.includes(nomeTimeA) && item.nome.includes(nomeTimeA)) return false;
-                if (opcao1.nome.includes(nomeTimeB) && item.nome.includes(nomeTimeB)) return false;
-            }
-            return true;
-        });
-    }
-
-    // Backup seguro: Se não houver par misto (Resultado + Gols), pega qualquer mercado restante não-conflitante
-    if (!opcao2 && mercadosMultipla.length > 1) {
-        opcao2 = mercadosMultipla.find(item => {
-            if (item.nome === opcao1.nome) return false;
-            if (opcao1.nome.includes("Dupla Chance") && item.nome.includes("Dupla Chance")) return false;
-            return true;
-        });
-    }
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
     resultado.innerHTML = `
