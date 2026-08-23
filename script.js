@@ -450,7 +450,7 @@ function analisarApenasH2H() {
         probVitB = Math.round((mercadoOdds.probMercadoB * 0.70) + (probVitB * 0.30));
     }
 
-    // 2. Probabilidades Base de Gols (30% H2H + 70% Odds de Gols da Casa se existirem)
+    // 2. Probabilidades Base de Gols (30% H2H + 70% Odds de Gols da Casa)
     let bttsH2H = Math.round(h2h.btts);
     let over25H2H = Math.round(h2h.over25);
 
@@ -476,9 +476,9 @@ function analisarApenasH2H() {
 
     const mercadosH2H = [];
 
-    // --- ENQUADRAMENTO NOS MERCADOS BASEADO NAS ODDS E TRAVAS ---
+    // --- ENQUADRAMENTO APENAS NOS MERCADOS DE VALOR ---
 
-    // A) Mercado de Resultado Principal (Vitória Direta ou Empate Anula)
+    // A) Mercado de Resultado (Vitória Direta ou Empate Anula)
     if (probVitA >= probVitB) {
         if (oddA >= 1.30 && oddA <= 1.85 && probVitA >= 55) {
             mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
@@ -495,19 +495,7 @@ function analisarApenasH2H() {
         }
     }
 
-    // B) Mercado de Dupla Chance (Se o jogo for muito parelho)
-    const prob1X = Math.min(92, Math.round(probVitA + (taxaEmpateH2H * 0.60)));
-    const probX2 = Math.min(92, Math.round(probVitB + (taxaEmpateConfronto * 0.60)));
-
-    if (probVitA < 55 && probVitB < 55) {
-        if (prob1X >= probX2) {
-            mercadosH2H.push({ nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X });
-        } else {
-            mercadosH2H.push({ nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2 });
-        }
-    }
-
-    // C) Mercados de Gols (Calibrados a 70% Casa / 30% H2H)
+    // B) Mercados de Gols (Exige >= 58% e Odds de até 1.85)
     if (over25H2H >= 58 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
     }
