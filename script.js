@@ -565,42 +565,42 @@ function gerarApostaMultipla() {
     btts = ajustes.btts;
     over25 = ajustes.over25;
 
-    // --- LEITURA CORRETA DAS ODDS DO MERCADO ---
+    // --- LEITURA DAS ODDS DO MERCADO ---
     const oddA = mercadoOdds?.oddA || 0;
     const oddB = mercadoOdds?.oddB || 0;
     const oddOver25 = mercadoOdds?.oddOver25 || 0;
     const oddBTTS = mercadoOdds?.oddBTTS || 0;
 
-    const mercadosMultipla = [];
-
-    // 1. Dupla Chance (1X ou X2) - Trava de segurança para Múltiplas
     const prob1X = Math.min(95, Math.round(vitoriaA + (taxaEmpateConfronto * 0.70)));
     const probX2 = Math.min(95, Math.round(vitoriaB + (taxaEmpateConfronto * 0.70)));
 
+    const mercadosMultipla = [];
+
+    // 1. Dupla Chance (Base Segura)
     if (prob1X >= 55) {
-        mercadosMultipla.push({ nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X, odd: 0 });
+        mercadosMultipla.push({ id: "dc_a", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X, odd: 0 });
     }
     if (probX2 >= 55) {
-        mercadosMultipla.push({ nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2, odd: 0 });
+        mercadosMultipla.push({ id: "dc_b", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2, odd: 0 });
     }
 
-    // 2. Vitória Direta (Aplica trava de odd máxima caso a odd esteja preenchida)
+    // 2. Vitória Direta (Caso a odd seja viável)
     if (vitoriaA >= 55 && (oddA === 0 || oddA <= 1.85)) {
-        mercadosMultipla.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA, odd: oddA });
+        mercadosMultipla.push({ id: "vit_a", tipo: "resultado", nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA, odd: oddA });
     }
     if (vitoriaB >= 55 && (oddB === 0 || oddB <= 1.85)) {
-        mercadosMultipla.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
+        mercadosMultipla.push({ id: "vit_b", tipo: "resultado", nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
     }
 
-    // 3. Mercados de Gols (Aplica trava de odd máxima caso esteja preenchida)
-    if (btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
-        mercadosMultipla.push({ nome: "Ambos Marcam", probabilidade: btts, odd: oddBTTS });
-    }
+    // 3. Mercados de Gols Fixo (Apenas Over 2.5 e BTTS)
     if (over25 >= 55 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
-        mercadosMultipla.push({ nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
+        mercadosMultipla.push({ id: "over25", tipo: "gols", nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
+    }
+    if (btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+        mercadosMultipla.push({ id: "btts", tipo: "gols", nome: "Ambos Marcam (BTTS)", probabilidade: btts, odd: oddBTTS });
     }
 
-    // Ordena as opções da maior para a menor probabilidade
+    // Ordena do maior para o menor percentual de probabilidade
     mercadosMultipla.sort((a, b) => b.probabilidade - a.probabilidade);
 
     const resultado = document.getElementById("resultado");
@@ -608,20 +608,30 @@ function gerarApostaMultipla() {
     if (mercadosMultipla.length === 0) {
         resultado.innerHTML = `
             <h3>⚠️ Sem Seleção</h3>
-            <p>Não foi possível calcular opções com os dados informados.</p>
+            <p>Não foi possível encontrar palpites com probabilidade mínima de 55% e odds adequadas.</p>
         `;
         return;
     }
 
-    // Seleciona os 2 melhores palpites (sem repetir o mesmo mercado de vitória/dupla chance para o mesmo time)
+    // Opção 1: Seleção de maior probabilidade
     const opcao1 = mercadosMultipla[0];
-    let opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome && !item.nome.includes(opcao1.nome.split(" ")[0]));
 
+    // Opção 2: Busca um mercado complementar SEM redundância de resultado/gols do mesmo tipo
+    let opcao2 = mercadosMultipla.find(item => {
+        if (item.nome === opcao1.nome) return false;
+        // Se a opção 1 for de resultado (Dupla Chance/Vitória), tenta pegar uma de gols (Over 2.5/BTTS)
+        if (opcao1.tipo === "resultado" && item.tipo === "gols") return true;
+        // Se a opção 1 for de gols, tenta pegar uma de resultado
+        if (opcao1.tipo === "gols" && item.tipo === "resultado") return true;
+        // Caso não haja combinação mista, evita repetir o mesmo lado de vitória/dupla chance
+        return item.tipo !== opcao1.tipo;
+    });
+
+    // Backup caso não exista o par misto perfeito
     if (!opcao2 && mercadosMultipla.length > 1) {
-        opcao2 = mercadosMultipla[1];
+        opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome);
     }
 
-    // Passa o nome limpo para a função de motivos
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
     resultado.innerHTML = `
