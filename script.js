@@ -72,8 +72,19 @@ function obterProbabilidadesMercado() {
 // ======================================
 // ESTATÍSTICAS COM PESO
 // ======================================
-
 function calcularEstatisticas(jogos) {
+    // TRAVA ANTI-NaN: Se não houver jogos no formulário, retorna tudo zerado em vez de quebrar
+    if (!jogos || jogos.length === 0) {
+        return {
+            forma: 0,
+            mediaMarcados: 0,
+            mediaSofridos: 0,
+            taxaEmpate: 0,
+            btts: 0,
+            over25: 0
+        };
+    }
+
     const pesos = [5, 4, 3, 2, 1];
     let pontos = 0;
     let golsMarcados = 0;
@@ -84,7 +95,7 @@ function calcularEstatisticas(jogos) {
     let pesoTotal = 0;
 
     jogos.forEach((jogo, index) => {
-        const peso = pesos[index];
+        const peso = pesos[index] || 1;
         pesoTotal += peso;
 
         golsMarcados += jogo.marcou * peso;
@@ -100,7 +111,7 @@ function calcularEstatisticas(jogos) {
         if ((jogo.marcou + jogo.sofreu) > 2) over25++;
     });
 
-    const totalJogos = jogos.length || 1;
+    const totalJogos = jogos.length;
 
     return {
         forma: (pontos / (pesoTotal * 3)) * 100,
@@ -616,22 +627,34 @@ function gerarApostaMultipla() {
     // Opção 1: Seleção de maior probabilidade
     const opcao1 = mercadosMultipla[0];
 
-    // Opção 2: Busca um mercado complementar SEM redundância de resultado/gols do mesmo tipo
+    // Opção 2: Busca obrigatoriamente um mercado sem conflito estatístico/conceitual
     let opcao2 = mercadosMultipla.find(item => {
         if (item.nome === opcao1.nome) return false;
-        // Se a opção 1 for de resultado (Dupla Chance/Vitória), tenta pegar uma de gols (Over 2.5/BTTS)
+
+        // 1. Evita conflito entre Dupla Chance oposta (ex: 1X x X2)
+        if (opcao1.nome.includes("Dupla Chance") && item.nome.includes("Dupla Chance")) return false;
+
+        // 2. Evita redundância de Vitória com Dupla Chance do mesmo time (ex: 1X + Vitória A)
+        if (opcao1.nome.includes("Dupla Chance") && item.nome.includes("Vitória")) {
+            const timeOpcao1 = opcao1.nome.split(":")[1]?.split("ou")[0]?.trim();
+            if (item.nome.includes(timeOpcao1)) return false;
+        }
+
+        // 3. Prioriza combinação perfeita: Se Opção 1 for Resultado, busca Gols (e vice-versa)
         if (opcao1.tipo === "resultado" && item.tipo === "gols") return true;
-        // Se a opção 1 for de gols, tenta pegar uma de resultado
         if (opcao1.tipo === "gols" && item.tipo === "resultado") return true;
-        // Caso não haja combinação mista, evita repetir o mesmo lado de vitória/dupla chance
+
         return item.tipo !== opcao1.tipo;
     });
 
-    // Backup caso não exista o par misto perfeito
+    // Backup seguro: Se não houver par misto (Resultado + Gols), pega qualquer mercado restante não-conflitante
     if (!opcao2 && mercadosMultipla.length > 1) {
-        opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome);
+        opcao2 = mercadosMultipla.find(item => {
+            if (item.nome === opcao1.nome) return false;
+            if (opcao1.nome.includes("Dupla Chance") && item.nome.includes("Dupla Chance")) return false;
+            return true;
+        });
     }
-
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
     resultado.innerHTML = `
@@ -665,6 +688,7 @@ function gerarApostaMultipla() {
         </div>
     `;
 }
+
 // ======================================
 // GERADOR DE MOTIVOS
 // ======================================
