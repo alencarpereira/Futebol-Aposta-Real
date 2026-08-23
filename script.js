@@ -536,6 +536,126 @@ function analisarApenasH2H() {
 }
 
 // ======================================
+// 9. ANÁLISE EXCLUSIVA PARA MÚLTIPLAS (2 PALPITES)
+// ======================================
+function gerarApostaMultipla() {
+    const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
+    const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
+
+    const tipoCompeticao = document.getElementById("tipoCompeticao")?.value || "liga";
+    const mercadoOdds = obterProbabilidadesMercado();
+
+    const jogosA = obterJogosTime("a");
+    const jogosB = obterJogosTime("b");
+    const h2hJogos = obterH2H();
+
+    const timeA = calcularEstatisticas(jogosA);
+    const timeB = calcularEstatisticas(jogosB);
+    const h2h = calcularH2H(h2hJogos);
+
+    const vitoriaA = calcularVitoriaTimeA(timeA, timeB, h2h, mercadoOdds);
+    const vitoriaB = calcularVitoriaTimeB(timeA, timeB, h2h, mercadoOdds);
+
+    let btts = calcularBTTS(timeA, timeB, h2h);
+    let over25 = calcularOver25(timeA, timeB, h2h);
+
+    const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
+
+    const ajustes = aplicarAjusteCompeticao(btts, over25, taxaEmpateConfronto, tipoCompeticao);
+    btts = ajustes.btts;
+    over25 = ajustes.over25;
+
+    // --- LEITURA CORRETA DAS ODDS DO MERCADO ---
+    const oddA = mercadoOdds?.oddA || 0;
+    const oddB = mercadoOdds?.oddB || 0;
+    const oddOver25 = mercadoOdds?.oddOver25 || 0;
+    const oddBTTS = mercadoOdds?.oddBTTS || 0;
+
+    const mercadosMultipla = [];
+
+    // 1. Dupla Chance (1X ou X2) - Trava de segurança para Múltiplas
+    const prob1X = Math.min(95, Math.round(vitoriaA + (taxaEmpateConfronto * 0.70)));
+    const probX2 = Math.min(95, Math.round(vitoriaB + (taxaEmpateConfronto * 0.70)));
+
+    if (prob1X >= 55) {
+        mercadosMultipla.push({ nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X, odd: 0 });
+    }
+    if (probX2 >= 55) {
+        mercadosMultipla.push({ nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2, odd: 0 });
+    }
+
+    // 2. Vitória Direta (Aplica trava de odd máxima caso a odd esteja preenchida)
+    if (vitoriaA >= 55 && (oddA === 0 || oddA <= 1.85)) {
+        mercadosMultipla.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA, odd: oddA });
+    }
+    if (vitoriaB >= 55 && (oddB === 0 || oddB <= 1.85)) {
+        mercadosMultipla.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
+    }
+
+    // 3. Mercados de Gols (Aplica trava de odd máxima caso esteja preenchida)
+    if (btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+        mercadosMultipla.push({ nome: "Ambos Marcam", probabilidade: btts, odd: oddBTTS });
+    }
+    if (over25 >= 55 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
+        mercadosMultipla.push({ nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
+    }
+
+    // Ordena as opções da maior para a menor probabilidade
+    mercadosMultipla.sort((a, b) => b.probabilidade - a.probabilidade);
+
+    const resultado = document.getElementById("resultado");
+
+    if (mercadosMultipla.length === 0) {
+        resultado.innerHTML = `
+            <h3>⚠️ Sem Seleção</h3>
+            <p>Não foi possível calcular opções com os dados informados.</p>
+        `;
+        return;
+    }
+
+    // Seleciona os 2 melhores palpites (sem repetir o mesmo mercado de vitória/dupla chance para o mesmo time)
+    const opcao1 = mercadosMultipla[0];
+    let opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome && !item.nome.includes(opcao1.nome.split(" ")[0]));
+
+    if (!opcao2 && mercadosMultipla.length > 1) {
+        opcao2 = mercadosMultipla[1];
+    }
+
+    // Passa o nome limpo para a função de motivos
+    const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
+
+    resultado.innerHTML = `
+        <div class="resultado-top" style="border-left: 5px solid #ff9800; margin-bottom: 10px;">
+            <strong>🧩 Opção 1 (Principal): ${opcao1.nome}</strong>
+            <span class="probabilidade">${opcao1.probabilidade}%</span>
+        </div>
+
+        ${opcao2 ? `
+        <div class="resultado-top" style="border-left: 5px solid #2196F3; background: #1e293b; margin-bottom: 15px;">
+            <strong>🧩 Opção 2 (Complementar): ${opcao2.nome}</strong>
+            <span class="probabilidade">${opcao2.probabilidade}%</span>
+        </div>
+        ` : ''}
+
+        <div class="motivos-box">
+            <h3>Motivos (Perna do Bilhete)</h3>
+            <ul>
+                ${motivosOpcao1.length > 0
+            ? motivosOpcao1.map(m => `<li>${m}</li>`).join("")
+            : "<li>✓ Seleção de maior probabilidade estatística para compor o bilhete.</li>"
+        }
+            </ul>
+        </div>
+
+        <div class="cards">
+            <div class="card"><span>Vitória ${nomeTimeA}</span><strong>${vitoriaA}%</strong></div>
+            <div class="card"><span>Vitória ${nomeTimeB}</span><strong>${vitoriaB}%</strong></div>
+            <div class="card"><span>BTTS</span><strong>${btts}%</strong></div>
+            <div class="card"><span>Over 2.5</span><strong>${over25}%</strong></div>
+        </div>
+    `;
+}
+// ======================================
 // GERADOR DE MOTIVOS
 // ======================================
 
@@ -607,6 +727,11 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("resultado").innerHTML = "<p>Aguardando análise...</p>";
         });
     }
+
+    // Adicionar dentro de document.addEventListener("DOMContentLoaded", () => { ... })
+
+    const multiplaBtn = document.getElementById("multiplaBtn");
+    if (multiplaBtn) multiplaBtn.addEventListener("click", gerarApostaMultipla);
 
     const testeBtn = document.getElementById("testeBtn");
     if (testeBtn) {
