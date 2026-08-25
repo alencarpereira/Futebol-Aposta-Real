@@ -555,6 +555,7 @@ function analisarApenasH2H() {
         </div>
     `;
 }
+
 function gerarApostaMultipla() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -635,52 +636,21 @@ function gerarApostaMultipla() {
     // Ordena do maior para o menor percentual de probabilidade
     mercadosMultipla.sort((a, b) => b.probabilidade - a.probabilidade);
 
-    const resultado = document.getElementById("resultado");
-
-    if (mercadosMultipla.length === 0) {
-        resultado.innerHTML = `
-            <h3>⚠️ Sem Seleção para Múltipla</h3>
-            <p>Nenhuma opção atingiu a probabilidade mínima de segurança com odds adequadas.</p>
-        `;
-        return;
-    }
-
-    // Opção 1: Seleção de maior probabilidade
+    // Opção 1: Melhor mercado qualificado
     const opcao1 = mercadosMultipla[0];
 
-    // Opção 2: Busca por categoria diferente dentro dos mercados oficiais
-    let opcao2 = mercadosMultipla.find(item => item.tipo !== opcao1.tipo);
+    // Opção 2: Apenas mercado de categoria DIFERENTE (Resultado x Gols) que também tenha sido qualificado
+    const opcao2 = opcao1 ? mercadosMultipla.find(item => item.tipo !== opcao1.tipo) : null;
 
-    // --- FALLBACK RESTRITO AOS MERCADOS OFICIAIS ---
-    if (!opcao2) {
-        if (opcao1.tipo === "resultado") {
-            // Se o 1º for de resultado e não houver Over 2.5 ou BTTS qualificado (>=65%),
-            // pega a 2ª melhor opção de Resultado diferente da 1ª
-            opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome);
-        } else {
-            // Se o 1º for de gols, seleciona o melhor mercado de resultado oficial (1X/X2 ou DNB)
-            const eTimeA = vitoriaA >= vitoriaB;
-            const nomeDC = eTimeA ? `Dupla Chance: ${nomeTimeA} ou Empate (1X)` : `Dupla Chance: ${nomeTimeB} ou Empate (X2)`;
-            const probDC = eTimeA ? prob1X : probX2;
+    const resultado = document.getElementById("resultado");
 
-            opcao2 = {
-                id: "dc_fallback",
-                tipo: "resultado",
-                nome: nomeDC,
-                probabilidade: probDC
-            };
-        }
-    }
-
-    // Garantia final contra redundância do mesmo mercado
-    if (!opcao2 || opcao2.nome === opcao1.nome) {
-        const eTimeA = vitoriaA >= vitoriaB;
-        opcao2 = {
-            id: "dnb_fallback",
-            tipo: "resultado",
-            nome: eTimeA ? `Empate Anula - ${nomeTimeA}` : `Empate Anula - ${nomeTimeB}`,
-            probabilidade: eTimeA ? probDNB_A : probDNB_B
-        };
+    // TRAVA RIGOROSA: Exibe o aviso se não houver opção qualificada dos DOIS lados
+    if (!opcao1 || !opcao2) {
+        resultado.innerHTML = `
+            <h3>⚠️ Sem Seleção para Múltipla</h3>
+            <p>O jogo não atingiu os critérios mínimos de probabilidade e margem de odd em ambas as categorias simultaneamente (Resultado + Gols).</p>
+        `;
+        return;
     }
 
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
