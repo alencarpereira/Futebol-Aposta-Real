@@ -595,31 +595,41 @@ function gerarApostaMultipla() {
 
     const prob1X = Math.min(95, Math.round(vitoriaA + (taxaEmpateConfronto * 0.70)));
     const probX2 = Math.min(95, Math.round(vitoriaB + (taxaEmpateConfronto * 0.70)));
+    const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.30)));
+    const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.30)));
 
     const mercadosMultipla = [];
 
-    // 1. Dupla Chance (Mínimo ajustado para 65%)
+    // 1. Vitória Seca (Mínimo 60% | Odd entre 1.30 e 1.85)
+    if (vitoriaA >= 60 && (oddA === 0 || (oddA >= 1.30 && oddA <= 1.85))) {
+        mercadosMultipla.push({ id: "vit_a", tipo: "resultado", nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
+    }
+    if (vitoriaB >= 60 && (oddB === 0 || (oddB >= 1.30 && oddB <= 1.85))) {
+        mercadosMultipla.push({ id: "vit_b", tipo: "resultado", nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
+    }
+
+    // 2. Dupla Chance (Mínimo 65%)
     if (prob1X >= 65) {
-        mercadosMultipla.push({ id: "dc_a", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X, odd: 0 });
+        mercadosMultipla.push({ id: "dc_a", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X });
     }
     if (probX2 >= 65) {
-        mercadosMultipla.push({ id: "dc_b", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2, odd: 0 });
+        mercadosMultipla.push({ id: "dc_b", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2 });
     }
 
-    // 2. Vitória Direta (Mínimo ajustado para 65%)
-    if (vitoriaA >= 65 && (oddA === 0 || oddA <= 1.85)) {
-        mercadosMultipla.push({ id: "vit_a", tipo: "resultado", nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA, odd: oddA });
+    // 3. Empate Anula / DNB (Mínimo 50%)
+    if (probDNB_A >= 50 && vitoriaA >= vitoriaB) {
+        mercadosMultipla.push({ id: "dnb_a", tipo: "resultado", nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
-    if (vitoriaB >= 65 && (oddB === 0 || oddB <= 1.85)) {
-        mercadosMultipla.push({ id: "vit_b", tipo: "resultado", nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
+    if (probDNB_B >= 50 && vitoriaB > vitoriaA) {
+        mercadosMultipla.push({ id: "dnb_b", tipo: "resultado", nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
 
-    // 3. Mercados de Gols (Mínimo ajustado para 65% | BTTS Bloqueado em Super Favoritos)
+    // 4. Mercados de Gols (Mínimo 65% | Odd <= 1.85 | BTTS Bloqueado em Super Favorito)
     if (over25 >= 65 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
-        mercadosMultipla.push({ id: "over25", tipo: "gols", nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
+        mercadosMultipla.push({ id: "over25", tipo: "gols", nome: "Over 2.5 Gols", probabilidade: over25 });
     }
     if (!temSuperFavorito && btts >= 65 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
-        mercadosMultipla.push({ id: "btts", tipo: "gols", nome: "Ambos Marcam (BTTS)", probabilidade: btts, odd: oddBTTS });
+        mercadosMultipla.push({ id: "btts", tipo: "gols", nome: "Ambos Marcam (BTTS)", probabilidade: btts });
     }
 
     // Ordena do maior para o menor percentual de probabilidade
@@ -630,7 +640,7 @@ function gerarApostaMultipla() {
     if (mercadosMultipla.length === 0) {
         resultado.innerHTML = `
             <h3>⚠️ Sem Seleção para Múltipla</h3>
-            <p>Nenhuma opção atingiu a probabilidade mínima de segurança (65%) com odds adequadas.</p>
+            <p>Nenhuma opção atingiu a probabilidade mínima de segurança com odds adequadas.</p>
         `;
         return;
     }
@@ -638,8 +648,40 @@ function gerarApostaMultipla() {
     // Opção 1: Seleção de maior probabilidade
     const opcao1 = mercadosMultipla[0];
 
-    // Opção 2: TRAVA ESTRITA - Exige obrigatoriamente que a Opção 2 seja de CATEGORIA DIFERENTE da Opção 1.
+    // Opção 2: Busca por categoria diferente dentro dos mercados oficiais
     let opcao2 = mercadosMultipla.find(item => item.tipo !== opcao1.tipo);
+
+    // --- FALLBACK RESTRITO AOS MERCADOS OFICIAIS ---
+    if (!opcao2) {
+        if (opcao1.tipo === "resultado") {
+            // Se o 1º for de resultado e não houver Over 2.5 ou BTTS qualificado (>=65%),
+            // pega a 2ª melhor opção de Resultado diferente da 1ª
+            opcao2 = mercadosMultipla.find(item => item.nome !== opcao1.nome);
+        } else {
+            // Se o 1º for de gols, seleciona o melhor mercado de resultado oficial (1X/X2 ou DNB)
+            const eTimeA = vitoriaA >= vitoriaB;
+            const nomeDC = eTimeA ? `Dupla Chance: ${nomeTimeA} ou Empate (1X)` : `Dupla Chance: ${nomeTimeB} ou Empate (X2)`;
+            const probDC = eTimeA ? prob1X : probX2;
+
+            opcao2 = {
+                id: "dc_fallback",
+                tipo: "resultado",
+                nome: nomeDC,
+                probabilidade: probDC
+            };
+        }
+    }
+
+    // Garantia final contra redundância do mesmo mercado
+    if (!opcao2 || opcao2.nome === opcao1.nome) {
+        const eTimeA = vitoriaA >= vitoriaB;
+        opcao2 = {
+            id: "dnb_fallback",
+            tipo: "resultado",
+            nome: eTimeA ? `Empate Anula - ${nomeTimeA}` : `Empate Anula - ${nomeTimeB}`,
+            probabilidade: eTimeA ? probDNB_A : probDNB_B
+        };
+    }
 
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
 
@@ -649,19 +691,17 @@ function gerarApostaMultipla() {
             <span class="probabilidade">${opcao1.probabilidade}%</span>
         </div>
 
-        ${opcao2 ? `
         <div class="resultado-top" style="border-left: 5px solid #2196F3; background: #1e293b; margin-bottom: 15px;">
             <strong>🧩 Opção 2 (Complementar): ${opcao2.nome}</strong>
             <span class="probabilidade">${opcao2.probabilidade}%</span>
         </div>
-        ` : ''}
 
         <div class="motivos-box">
             <h3>Motivos (Perna do Bilhete)</h3>
             <ul>
                 ${motivosOpcao1.length > 0
             ? motivosOpcao1.map(m => `<li>${m}</li>`).join("")
-            : "<li>✓ Seleção de alta probabilidade estatística (≥65%) para compor o bilhete.</li>"
+            : "<li>✓ Seleção de alta probabilidade estatística para compor o bilhete.</li>"
         }
             </ul>
         </div>
