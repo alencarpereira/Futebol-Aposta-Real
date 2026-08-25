@@ -307,23 +307,28 @@ function analisarPartida() {
     btts = ajustes.btts;
     over25 = ajustes.over25;
 
-    // Captura das Odds de Gols (0 se não preenchidas)
+    // Captura das Odds do Mercado
+    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
+    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
     const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
     const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
+
+    // --- IDENTIFICAÇÃO DE SUPER FAVORITO (Odd <= 1.40) ---
+    const eSuperFavoritoA = oddA > 0 && oddA <= 1.40;
+    const eSuperFavoritoB = oddB > 0 && oddB <= 1.40;
+    const temSuperFavorito = eSuperFavoritoA || eSuperFavoritoB;
 
     const mercados = [];
 
     // --- TRAVA DE GOLS: Só entram se a Odd for <= 1.85 (ou sem odd informada) ---
-    if (oddBTTS === 0 || oddBTTS <= 1.85) {
+    // BTTS é BLOQUEADO se houver Super Favorito (odd <= 1.40)
+    if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85)) {
         mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
     }
 
     if (oddOver25 === 0 || oddOver25 <= 1.85) {
         mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
     }
-
-    const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
-    const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
     // --- TIME A ---
     if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 58) {
@@ -333,14 +338,12 @@ function analisarPartida() {
         // Vitória Seca para odds mais altas (exige confiança maior)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
     } else if (oddA > 0 && oddA < 1.30) {
-        // Super favorito: busca apenas mercados de gols de valor
+        // Super favorito extremo (< 1.30): busca apenas Over 2.5 (BTTS bloqueado)
         if (over25 >= 65) {
             mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
-        } else if (btts >= 65) {
-            mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
         }
     } else if (oddA > 1.70 && vitoriaA >= 58) {
-        // Proteção DNB restrita apenas para Odds maiores que 1.70 com probabilidade moderada
+        // Proteção DNB restrita para Odds maiores que 1.70 com probabilidade moderada
         const probDNB_A = Math.min(85, Math.round(vitoriaA + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
@@ -353,14 +356,12 @@ function analisarPartida() {
         // Vitória Seca para odds mais altas
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
     } else if (oddB > 0 && oddB < 1.30) {
-        // Super favorito
+        // Super favorito extremo (< 1.30)
         if (over25 >= 65) {
             mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
-        } else if (btts >= 65) {
-            mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
         }
     } else if (oddB > 1.70 && vitoriaB >= 58) {
-        // Proteção DNB apenas para Odds > 1.70
+        // Proteção DNB para Odds > 1.70
         const probDNB_B = Math.min(85, Math.round(vitoriaB + (taxaEmpateConfronto * 0.25)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
@@ -474,6 +475,11 @@ function analisarApenasH2H() {
     const oddOver25 = mercadoOdds ? mercadoOdds.oddOver25 : 0;
     const oddBTTS = mercadoOdds ? mercadoOdds.oddBTTS : 0;
 
+    // --- IDENTIFICAÇÃO DE SUPER FAVORITO (Odd <= 1.40) ---
+    const eSuperFavoritoA = oddA > 0 && oddA <= 1.40;
+    const eSuperFavoritoB = oddB > 0 && oddB <= 1.40;
+    const temSuperFavorito = eSuperFavoritoA || eSuperFavoritoB;
+
     const mercadosH2H = [];
 
     // --- ENQUADRAMENTO APENAS NOS MERCADOS DE VALOR ---
@@ -495,11 +501,13 @@ function analisarApenasH2H() {
         }
     }
 
-    // B) Mercados de Gols (Exige >= 58% e Odds de até 1.85)
+    // B) Mercado de Over 2.5 Gols (Apenas se Prob >= 58% e Odd <= 1.85)
     if (over25H2H >= 58 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
     }
-    if (bttsH2H >= 58 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+
+    // C) Mercado de BTTS (Bloqueado se houver Super Favorito odd <= 1.40)
+    if (!temSuperFavorito && bttsH2H >= 58 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
         mercadosH2H.push({ nome: "Ambos Marcam (BTTS)", probabilidade: bttsH2H });
     }
 
@@ -544,9 +552,6 @@ function analisarApenasH2H() {
     `;
 }
 
-// ======================================
-// 9. ANÁLISE EXCLUSIVA PARA MÚLTIPLAS (2 PALPITES)
-// ======================================
 function gerarApostaMultipla() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -580,6 +585,11 @@ function gerarApostaMultipla() {
     const oddOver25 = mercadoOdds?.oddOver25 || 0;
     const oddBTTS = mercadoOdds?.oddBTTS || 0;
 
+    // --- IDENTIFICAÇÃO DE SUPER FAVORITO (Odd <= 1.40) ---
+    const eSuperFavoritoA = oddA > 0 && oddA <= 1.40;
+    const eSuperFavoritoB = oddB > 0 && oddB <= 1.40;
+    const temSuperFavorito = eSuperFavoritoA || eSuperFavoritoB;
+
     const prob1X = Math.min(95, Math.round(vitoriaA + (taxaEmpateConfronto * 0.70)));
     const probX2 = Math.min(95, Math.round(vitoriaB + (taxaEmpateConfronto * 0.70)));
 
@@ -601,11 +611,11 @@ function gerarApostaMultipla() {
         mercadosMultipla.push({ id: "vit_b", tipo: "resultado", nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
     }
 
-    // 3. Mercados de Gols Fixo (Apenas Over 2.5 e BTTS)
+    // 3. Mercados de Gols (Over 2.5 liberado | BTTS Bloqueado se houver Super Favorito)
     if (over25 >= 55 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosMultipla.push({ id: "over25", tipo: "gols", nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
     }
-    if (btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+    if (!temSuperFavorito && btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
         mercadosMultipla.push({ id: "btts", tipo: "gols", nome: "Ambos Marcam (BTTS)", probabilidade: btts, odd: oddBTTS });
     }
 
@@ -662,7 +672,6 @@ function gerarApostaMultipla() {
         </div>
     `;
 }
-
 // ======================================
 // GERADOR DE MOTIVOS
 // ======================================
