@@ -482,22 +482,26 @@ function analisarApenasH2H() {
 
     const mercadosH2H = [];
 
-    // --- ENQUADRAMENTO APENAS NOS MERCADOS DE VALOR ---
+    // --- ENQUADRAMENTO NOS MERCADOS DE VALOR ---
 
-    // A) Mercado de Resultado (Vitória Direta ou Empate Anula)
+    // A) Mercado de Resultado (Vitória Seca Exigente >= 60% | Fallback para DNB >= 50%)
     if (probVitA >= probVitB) {
-        if (oddA >= 1.30 && oddA <= 1.85 && probVitA >= 55) {
+        if (oddA >= 1.30 && oddA <= 1.85 && probVitA >= 60) {
             mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-        } else if (oddA > 1.85 || probVitA < 55) {
+        } else {
             const probDNB_A = Math.min(88, Math.round(probVitA + (taxaEmpateH2H * 0.30)));
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
+            if (probDNB_A >= 50) {
+                mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
+            }
         }
     } else {
-        if (oddB >= 1.30 && oddB <= 1.85 && probVitB >= 55) {
+        if (oddB >= 1.30 && oddB <= 1.85 && probVitB >= 60) {
             mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-        } else if (oddB > 1.85 || probVitB < 55) {
+        } else {
             const probDNB_B = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.30)));
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
+            if (probDNB_B >= 50) {
+                mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
+            }
         }
     }
 
@@ -551,7 +555,6 @@ function analisarApenasH2H() {
         </div>
     `;
 }
-
 function gerarApostaMultipla() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -595,27 +598,27 @@ function gerarApostaMultipla() {
 
     const mercadosMultipla = [];
 
-    // 1. Dupla Chance (Base Segura)
-    if (prob1X >= 55) {
+    // 1. Dupla Chance (Mínimo ajustado para 65%)
+    if (prob1X >= 65) {
         mercadosMultipla.push({ id: "dc_a", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeA} ou Empate (1X)`, probabilidade: prob1X, odd: 0 });
     }
-    if (probX2 >= 55) {
+    if (probX2 >= 65) {
         mercadosMultipla.push({ id: "dc_b", tipo: "resultado", nome: `Dupla Chance: ${nomeTimeB} ou Empate (X2)`, probabilidade: probX2, odd: 0 });
     }
 
-    // 2. Vitória Direta (Caso a odd seja viável)
-    if (vitoriaA >= 55 && (oddA === 0 || oddA <= 1.85)) {
+    // 2. Vitória Direta (Mínimo ajustado para 65%)
+    if (vitoriaA >= 65 && (oddA === 0 || oddA <= 1.85)) {
         mercadosMultipla.push({ id: "vit_a", tipo: "resultado", nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA, odd: oddA });
     }
-    if (vitoriaB >= 55 && (oddB === 0 || oddB <= 1.85)) {
+    if (vitoriaB >= 65 && (oddB === 0 || oddB <= 1.85)) {
         mercadosMultipla.push({ id: "vit_b", tipo: "resultado", nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB, odd: oddB });
     }
 
-    // 3. Mercados de Gols (Over 2.5 liberado | BTTS Bloqueado se houver Super Favorito)
-    if (over25 >= 55 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
+    // 3. Mercados de Gols (Mínimo ajustado para 65% | BTTS Bloqueado em Super Favoritos)
+    if (over25 >= 65 && (oddOver25 === 0 || oddOver25 <= 1.85)) {
         mercadosMultipla.push({ id: "over25", tipo: "gols", nome: "Over 2.5 Gols", probabilidade: over25, odd: oddOver25 });
     }
-    if (!temSuperFavorito && btts >= 55 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+    if (!temSuperFavorito && btts >= 65 && (oddBTTS === 0 || oddBTTS <= 1.85)) {
         mercadosMultipla.push({ id: "btts", tipo: "gols", nome: "Ambos Marcam (BTTS)", probabilidade: btts, odd: oddBTTS });
     }
 
@@ -626,8 +629,8 @@ function gerarApostaMultipla() {
 
     if (mercadosMultipla.length === 0) {
         resultado.innerHTML = `
-            <h3>⚠️ Sem Seleção</h3>
-            <p>Não foi possível encontrar palpites com probabilidade mínima de 55% e odds adequadas.</p>
+            <h3>⚠️ Sem Seleção para Múltipla</h3>
+            <p>Nenhuma opção atingiu a probabilidade mínima de segurança (65%) com odds adequadas.</p>
         `;
         return;
     }
@@ -636,7 +639,6 @@ function gerarApostaMultipla() {
     const opcao1 = mercadosMultipla[0];
 
     // Opção 2: TRAVA ESTRITA - Exige obrigatoriamente que a Opção 2 seja de CATEGORIA DIFERENTE da Opção 1.
-    // Se a Opção 1 for "resultado" (Vitória/Dupla Chance), a Opção 2 OBRIGATORIAMENTE precisa ser "gols" (Over 2.5/BTTS).
     let opcao2 = mercadosMultipla.find(item => item.tipo !== opcao1.tipo);
 
     const motivosOpcao1 = gerarMotivos(opcao1.nome, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
@@ -659,7 +661,7 @@ function gerarApostaMultipla() {
             <ul>
                 ${motivosOpcao1.length > 0
             ? motivosOpcao1.map(m => `<li>${m}</li>`).join("")
-            : "<li>✓ Seleção de maior probabilidade estatística para compor o bilhete.</li>"
+            : "<li>✓ Seleção de alta probabilidade estatística (≥65%) para compor o bilhete.</li>"
         }
             </ul>
         </div>
