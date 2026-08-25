@@ -727,11 +727,6 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoO
 
     return motivos;
 }
-
-// ======================================
-// EVENT LISTENERS E UTILITÁRIOS
-// ======================================
-
 document.addEventListener("DOMContentLoaded", () => {
     const analisarBtn = document.getElementById("analisarBtn");
     if (analisarBtn) analisarBtn.addEventListener("click", analisarPartida);
@@ -753,22 +748,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const testeBtn = document.getElementById("testeBtn");
     if (testeBtn) {
         testeBtn.addEventListener("click", () => {
-            document.getElementById("timeA").value = "Flamengo";
-            document.getElementById("timeB").value = "Palmeiras";
-            document.getElementById("oddA").value = "2.10";
-            document.getElementById("oddEmpate").value = "3.20";
-            document.getElementById("oddB").value = "3.50";
+            // Dados da Partida
+            if (document.getElementById("timeA")) document.getElementById("timeA").value = "Flamengo";
+            if (document.getElementById("timeB")) document.getElementById("timeB").value = "Palmeiras";
 
-            // Preenchimento automático das novas odds de gols
-            if (document.getElementById("oddOver25")) document.getElementById("oddOver25").value = "1.85";
-            if (document.getElementById("oddBTTS")) document.getElementById("oddBTTS").value = "1.80";
+            // Odds do Mercado
+            if (document.getElementById("oddA")) document.getElementById("oddA").value = "1.75";
+            if (document.getElementById("oddEmpate")) document.getElementById("oddEmpate").value = "3.40";
+            if (document.getElementById("oddB")) document.getElementById("oddB").value = "4.50";
+            if (document.getElementById("oddOver25")) document.getElementById("oddOver25").value = "1.70";
+            if (document.getElementById("oddBTTS")) document.getElementById("oddBTTS").value = "1.75";
 
-            const a_m = [2, 1, 3, 0, 2];
-            const a_s = [1, 0, 0, 1, 2];
-            const b_m = [1, 2, 0, 1, 3];
-            const b_s = [0, 1, 0, 2, 1];
-            const h_a = [1, 2, 0, 2, 1];
-            const h_b = [1, 0, 1, 2, 0];
+            // Últimos 5 Jogos do Time A (Ataque forte + jogos movimentados)
+            // Jogos: 3x1, 2x1, 3x2, 2x1, 3x0 -> Over 2.5 em 100% | BTTS em 80%
+            const a_m = [3, 2, 3, 2, 3];
+            const a_s = [1, 1, 2, 1, 0];
+
+            // Últimos 5 Jogos do Time B (Marca com frequência, mas concede gols)
+            // Jogos: 1x2, 2x1, 1x3, 2x2, 1x2 -> Over 2.5 em 100% | BTTS em 100%
+            const b_m = [1, 2, 1, 2, 1];
+            const b_s = [2, 1, 3, 2, 2];
+
+            // H2H Histórico (Tendência forte de gols e ambas marcam)
+            // Jogos: 2x1, 3x1, 2x1, 1x2, 3x1 -> Over 2.5 em 100% | BTTS em 100%
+            const h_a = [2, 3, 2, 1, 3];
+            const h_b = [1, 1, 1, 2, 1];
 
             for (let i = 1; i <= 5; i++) {
                 if (document.getElementById(`a_m${i}`)) document.getElementById(`a_m${i}`).value = a_m[i - 1];
