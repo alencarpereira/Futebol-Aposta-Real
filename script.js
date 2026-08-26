@@ -262,10 +262,12 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, tipoCompeticao) {
     let empateAjustado = probEmpate;
 
     if (tipoCompeticao === "matamata") {
-        bttsAjustado = Math.round(btts * 0.88);
-        over25Ajustado = Math.round(over25 * 0.85);
-        empateAjustado = Math.round(probEmpate * 1.15);
+        // Redução suave (5% a 7%) para não zerar partidas com boa estatística de gols
+        bttsAjustado = Math.round(btts * 0.93);
+        over25Ajustado = Math.round(over25 * 0.95);
+        empateAjustado = Math.min(90, Math.round(probEmpate * 1.10));
     } else {
+        // PONTOS CORRIDOS (PERMANECE 100% INTACTO)
         bttsAjustado = Math.min(95, Math.round(btts * 1.05));
         over25Ajustado = Math.min(95, Math.round(over25 * 1.05));
     }
@@ -320,13 +322,14 @@ function analisarPartida() {
 
     const mercados = [];
 
-    // --- TRAVA DE GOLS: Só entram se a Odd for <= 1.85 (ou sem odd informada) ---
+    // --- TRAVA DE GOLS: Mínimo 65% + Odd <= 1.85 (ou sem odd informada) ---
     // BTTS é BLOQUEADO se houver Super Favorito (odd <= 1.40)
-    if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85)) {
+    if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85) && btts >= 65) {
         mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
     }
 
-    if (oddOver25 === 0 || oddOver25 <= 1.85) {
+    // Over 2.5 exige pelo menos 65% de probabilidade estatística
+    if ((oddOver25 === 0 || oddOver25 <= 1.85) && over25 >= 65) {
         mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
     }
 
