@@ -255,19 +255,24 @@ function escolherMelhorAposta(lista) {
         probabilidade: Math.min(85, melhor.probabilidade)
     };
 }
-
-function aplicarAjusteCompeticao(btts, over25, probEmpate, tipoCompeticao) {
+function aplicarAjusteCompeticao(btts, over25, probEmpate, probVitoriaCasa, tipoCompeticao) {
     let bttsAjustado = btts;
     let over25Ajustado = over25;
     let empateAjustado = probEmpate;
+    let casaAjustado = probVitoriaCasa;
 
     if (tipoCompeticao === "matamata") {
-        // Redução suave (5% a 7%) para não zerar partidas com boa estatística de gols
+        // Redução leve em gols (jogos estudados/truncados)
         bttsAjustado = Math.round(btts * 0.93);
         over25Ajustado = Math.round(over25 * 0.95);
+
+        // Aumento do Empate (jogos muito parelhos)
         empateAjustado = Math.min(90, Math.round(probEmpate * 1.10));
+
+        // BÔNUS MANDO DE CAMPO: Impulso de 8% no Mandante para o Mata-Mata
+        casaAjustado = Math.min(95, Math.round(probVitoriaCasa * 1.08));
     } else {
-        // PONTOS CORRIDOS (PERMANECE 100% INTACTO)
+        // PONTOS CORRIDOS (Liga mantém o padrão)
         bttsAjustado = Math.min(95, Math.round(btts * 1.05));
         over25Ajustado = Math.min(95, Math.round(over25 * 1.05));
     }
@@ -275,7 +280,8 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, tipoCompeticao) {
     return {
         btts: bttsAjustado,
         over25: over25Ajustado,
-        empate: empateAjustado
+        empate: empateAjustado,
+        vitoriaCasa: casaAjustado
     };
 }
 
