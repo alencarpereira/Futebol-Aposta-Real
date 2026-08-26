@@ -288,6 +288,9 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, probVitoriaCasa, tipo
 // ======================================
 // FUNÇÃO PRINCIPAL DE ANÁLISE
 // ======================================
+// ======================================
+// FUNÇÃO PRINCIPAL DE ANÁLISE
+// ======================================
 function analisarPartida() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
     const nomeTimeB = document.getElementById("timeB")?.value.trim() || "Time B";
@@ -303,7 +306,8 @@ function analisarPartida() {
     const timeB = calcularEstatisticas(jogosB);
     const h2h = calcularH2H(h2hJogos);
 
-    const vitoriaA = calcularVitoriaTimeA(timeA, timeB, h2h, mercadoOdds);
+    // Declaração com LET para permitir alteração pelo bônus do mata-mata
+    let vitoriaA = calcularVitoriaTimeA(timeA, timeB, h2h, mercadoOdds);
     const vitoriaB = calcularVitoriaTimeB(timeA, timeB, h2h, mercadoOdds);
 
     let btts = calcularBTTS(timeA, timeB, h2h);
@@ -311,9 +315,11 @@ function analisarPartida() {
 
     const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
 
-    const ajustes = aplicarAjusteCompeticao(btts, over25, taxaEmpateConfronto, tipoCompeticao);
+    // APLICANDO OS AJUSTES DE COMPETIÇÃO (Recebe e aplica bônus mandante no Mata-Mata)
+    const ajustes = aplicarAjusteCompeticao(btts, over25, taxaEmpateConfronto, vitoriaA, tipoCompeticao);
     btts = ajustes.btts;
     over25 = ajustes.over25;
+    vitoriaA = ajustes.vitoriaCasa || vitoriaA;
 
     // Captura das Odds do Mercado
     const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
@@ -340,25 +346,25 @@ function analisarPartida() {
     }
 
     // --- TIME A ---
-    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 58) {
-        // Vitória Seca direta para odds de valor intermediário
+    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 55) {
+        // Vitória Seca direta para odds de valor intermediário (1.30 a 1.70)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
     } else if (oddA > 1.70 && vitoriaA >= 70) {
-        // Vitória Seca para odds mais altas (exige confiança maior)
+        // Vitória Seca para odds mais altas (exige maior confiança estatística)
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
     } else if (oddA > 0 && oddA < 1.30) {
-        // Super favorito extremo (< 1.30): busca apenas Over 2.5 (BTTS bloqueado)
+        // Super favorito extremo (< 1.30): busca apenas Over 2.5 se preencher o requisito
         if (over25 >= 65) {
             mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
         }
-    } else if (oddA > 1.70 && vitoriaA >= 58) {
-        // Proteção DNB restrita para Odds maiores que 1.70 com probabilidade moderada
-        const probDNB_A = Math.min(85, Math.round(vitoriaA + (taxaEmpateConfronto * 0.25)));
+    } else if (oddA > 1.70 && vitoriaA >= 55) {
+        // Proteção DNB para Odds maiores que 1.70 com probabilidade moderada
+        const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.30)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
     }
 
     // --- TIME B ---
-    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 58) {
+    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 55) {
         // Vitória Seca direta
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
     } else if (oddB > 1.70 && vitoriaB >= 70) {
@@ -369,16 +375,16 @@ function analisarPartida() {
         if (over25 >= 65) {
             mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
         }
-    } else if (oddB > 1.70 && vitoriaB >= 58) {
+    } else if (oddB > 1.70 && vitoriaB >= 55) {
         // Proteção DNB para Odds > 1.70
-        const probDNB_B = Math.min(85, Math.round(vitoriaB + (taxaEmpateConfronto * 0.25)));
+        const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.30)));
         mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
     }
 
     const melhor = escolherMelhorAposta(mercados);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA DE SEGURANÇA: Se a lista estiver vazia ("Nenhuma") ou abaixo de 65%
+    // TRAVA DE SEGURANÇA FINAL: Se a lista estiver vazia ou abaixo da margem de 65%
     if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
