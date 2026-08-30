@@ -287,7 +287,7 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, probVitoriaCasa = 0, 
 }
 
 // ======================================
-// FUNÇÃO PRINCIPAL DE ANÁLISE
+// FUNÇÃO PRINCIPAL DE ANÁLISE (REFATORADA)
 // ======================================
 function analisarPartida() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
@@ -313,7 +313,7 @@ function analisarPartida() {
 
     const taxaEmpateConfronto = (timeA.taxaEmpate + timeB.taxaEmpate + h2h.empate) / 3;
 
-    // APLICANDO OS AJUSTES DE COMPETIÇÃO (5 argumentos alinhados)
+    // APLICANDO OS AJUSTES DE COMPETIÇÃO
     const ajustes = aplicarAjusteCompeticao(btts, over25, taxaEmpateConfronto, vitoriaA, tipoCompeticao);
     btts = ajustes.btts;
     over25 = ajustes.over25;
@@ -332,7 +332,7 @@ function analisarPartida() {
 
     const mercados = [];
 
-    // --- TRAVA DE GOLS ---
+    // --- 1. TRAVAS INDEPENDENTES DE GOLS ---
     if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85) && btts >= 65) {
         mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
     }
@@ -341,26 +341,26 @@ function analisarPartida() {
         mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
     }
 
-    // --- ENQUADRAMENTO DE VITORIA/DNB TIME A ---
-    if (oddA >= 1.30 && oddA <= 1.70 && vitoriaA >= 55) {
+    // --- 2. NOVO ENQUADRAMENTO DE VITORIA/DNB TIME A ---
+    if (vitoriaA >= 72 && (oddA === 0 || oddA >= 1.50)) {
+        // Exige no mínimo 72% de confiança E Odd >= 1.50 para sugerir Vitória Seca
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
-    } else if (oddA > 1.70) {
-        if (vitoriaA >= 70) {
-            mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
-        } else if (vitoriaA >= 55) {
-            const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.30)));
+    } else if (vitoriaA >= 55 && vitoriaA < 72) {
+        // Se estiver na faixa de 55% a 71%, força a proteção no Empate Anula (DNB)
+        const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.30)));
+        if (probDNB_A >= 65) {
             mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
         }
     }
 
-    // --- ENQUADRAMENTO DE VITORIA/DNB TIME B ---
-    if (oddB >= 1.30 && oddB <= 1.70 && vitoriaB >= 55) {
+    // --- 3. NOVO ENQUADRAMENTO DE VITORIA/DNB TIME B ---
+    if (vitoriaB >= 72 && (oddB === 0 || oddB >= 1.50)) {
+        // Exige no mínimo 72% de confiança E Odd >= 1.50 para sugerir Vitória Seca
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
-    } else if (oddB > 1.70) {
-        if (vitoriaB >= 70) {
-            mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
-        } else if (vitoriaB >= 55) {
-            const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.30)));
+    } else if (vitoriaB >= 55 && vitoriaB < 72) {
+        // Se estiver na faixa de 55% a 71%, força a proteção no Empate Anula (DNB)
+        const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.30)));
+        if (probDNB_B >= 65) {
             mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
         }
     }
@@ -368,11 +368,11 @@ function analisarPartida() {
     const melhor = escolherMelhorAposta(mercados);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA DE SEGURANÇA FINAL
+    // TRAVA DE SEGURANÇA FINAL (Se nada atingir o nível necessário)
     if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
-            <p>Confiança abaixo do limite de segurança (Mínimo: 65%) ou odds fora da margem segura. Maior encontrada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
+            <p>Confiança abaixo do limite de segurança (Mínimo: 65%) ou odds fora da margem segura. Maior probabilidade analisada: <strong>${melhor ? melhor.probabilidade : 0}%</strong></p>
         `;
         return;
     }
