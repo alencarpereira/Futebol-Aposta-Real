@@ -287,7 +287,7 @@ function aplicarAjusteCompeticao(btts, over25, probEmpate, probVitoriaCasa = 0, 
 }
 
 // ======================================
-// FUNÇÃO PRINCIPAL DE ANÁLISE (REFATORADA)
+// FUNÇÃO PRINCIPAL DE ANÁLISE (COMPLETA - TRAVA 65% + DIFERENÇA 5% GOLS)
 // ======================================
 function analisarPartida() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
@@ -332,33 +332,31 @@ function analisarPartida() {
 
     const mercados = [];
 
-    // --- 1. TRAVAS INDEPENDENTES DE GOLS ---
-    if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85) && btts >= 65) {
+    // --- 1. TRAVAS DE GOLS (COM MARGEM MÍNIMA DE 5% DE DIFERENÇA) ---
+    // BTTS exige ser pelo menos 5% maior que Over 2.5
+    if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85) && btts >= 65 && btts >= (over25 + 5)) {
         mercados.push({ nome: "Ambos Marcam", probabilidade: btts });
     }
 
-    if ((oddOver25 === 0 || oddOver25 <= 1.85) && over25 >= 65) {
+    // Over 2.5 exige ser pelo menos 5% maior que BTTS
+    if ((oddOver25 === 0 || oddOver25 <= 1.85) && over25 >= 65 && over25 >= (btts + 5)) {
         mercados.push({ nome: "Over 2.5 Gols", probabilidade: over25 });
     }
 
-    // --- 2. NOVO ENQUADRAMENTO DE VITORIA/DNB TIME A ---
-    if (vitoriaA >= 72 && (oddA === 0 || oddA >= 1.50)) {
-        // Exige no mínimo 72% de confiança E Odd >= 1.50 para sugerir Vitória Seca
+    // --- 2. ENQUADRAMENTO DE VITORIA/DNB TIME A (TRAVA DE 65% COM ODD 1.30 A 1.80) ---
+    if (vitoriaA >= 65 && (oddA === 0 || (oddA >= 1.30 && oddA <= 1.80))) {
         mercados.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: vitoriaA });
-    } else if (vitoriaA >= 55 && vitoriaA < 72) {
-        // Se estiver na faixa de 55% a 71%, força a proteção no Empate Anula (DNB)
+    } else if (vitoriaA >= 55 && vitoriaA < 65) {
         const probDNB_A = Math.min(88, Math.round(vitoriaA + (taxaEmpateConfronto * 0.30)));
         if (probDNB_A >= 65) {
             mercados.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
         }
     }
 
-    // --- 3. NOVO ENQUADRAMENTO DE VITORIA/DNB TIME B ---
-    if (vitoriaB >= 72 && (oddB === 0 || oddB >= 1.50)) {
-        // Exige no mínimo 72% de confiança E Odd >= 1.50 para sugerir Vitória Seca
+    // --- 3. ENQUADRAMENTO DE VITORIA/DNB TIME B (TRAVA DE 65% COM ODD 1.30 A 1.80) ---
+    if (vitoriaB >= 65 && (oddB === 0 || (oddB >= 1.30 && oddB <= 1.80))) {
         mercados.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: vitoriaB });
-    } else if (vitoriaB >= 55 && vitoriaB < 72) {
-        // Se estiver na faixa de 55% a 71%, força a proteção no Empate Anula (DNB)
+    } else if (vitoriaB >= 55 && vitoriaB < 65) {
         const probDNB_B = Math.min(88, Math.round(vitoriaB + (taxaEmpateConfronto * 0.30)));
         if (probDNB_B >= 65) {
             mercados.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
@@ -368,7 +366,7 @@ function analisarPartida() {
     const melhor = escolherMelhorAposta(mercados);
     const resultado = document.getElementById("resultado");
 
-    // TRAVA DE SEGURANÇA FINAL (Se nada atingir o nível necessário)
+    // TRAVA DE SEGURANÇA FINAL
     if (!melhor || melhor.nome === "Nenhuma" || melhor.probabilidade < 65) {
         resultado.innerHTML = `
             <h3>⚠️ Sem entrada recomendada</h3>
