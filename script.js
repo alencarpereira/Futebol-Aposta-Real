@@ -708,6 +708,7 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoO
     const oddA = mercadoOdds ? mercadoOdds.oddA : 0;
     const oddB = mercadoOdds ? mercadoOdds.oddB : 0;
 
+    // --- MERCADOS DE GOLS ---
     if (mercadoLimpo === "Ambos Marcam") {
         if (timeA.btts >= 60) motivos.push(`✓ ${nomeTimeA} teve BTTS em ${Math.round(timeA.btts)}% dos jogos`);
         if (timeB.btts >= 60) motivos.push(`✓ ${nomeTimeB} teve BTTS em ${Math.round(timeB.btts)}% dos jogos`);
@@ -722,11 +723,14 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoO
         if (h2h.over25 >= 60) motivos.push(`✓ H2H teve Over 2.5 em ${Math.round(h2h.over25)}% dos confrontos`);
     }
 
+    // --- TIME A ---
     if (mercadoLimpo.includes(nomeTimeA)) {
         if (mercadoLimpo.includes("Empate Anula")) {
             motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
-        } else if (oddA >= 1.30 && oddA <= 1.60) {
-            motivos.push(`🎯 Odd de mercado (${oddA.toFixed(2)}) confirma alto favoritismo e aponta valor em Vitória Seca`);
+        } else if (mercadoLimpo.includes("Dupla Chance")) {
+            motivos.push(`🛡️ Cobertura de dois resultados possíveis (Vitória ou Empate)`);
+        } else if (oddA > 0) {
+            motivos.push(`🎯 Odd de mercado (${oddA.toFixed(2)}) e probabilidade estatística justificam a Vitória Seca`);
         }
 
         if (timeA.forma > timeB.forma) motivos.push(`✓ ${nomeTimeA} possui melhor forma recente`);
@@ -735,11 +739,14 @@ function gerarMotivos(mercado, timeA, timeB, h2h, nomeTimeA, nomeTimeB, mercadoO
         if (h2h.vitoriaA > h2h.vitoriaB) motivos.push(`✓ ${nomeTimeA} leva vantagem nos confrontos diretos`);
     }
 
+    // --- TIME B ---
     if (mercadoLimpo.includes(nomeTimeB)) {
         if (mercadoLimpo.includes("Empate Anula")) {
             motivos.push(`🛡️ Entrada protegida em caso de empate (DNB)`);
-        } else if (oddB >= 1.30 && oddB <= 1.60) {
-            motivos.push(`🎯 Odd de mercado (${oddB.toFixed(2)}) confirma alto favoritismo e aponta valor em Vitória Seca`);
+        } else if (mercadoLimpo.includes("Dupla Chance")) {
+            motivos.push(`🛡️ Cobertura de dois resultados possíveis (Vitória ou Empate)`);
+        } else if (oddB > 0) {
+            motivos.push(`🎯 Odd de mercado (${oddB.toFixed(2)}) e probabilidade estatística justificam a Vitória Seca`);
         }
 
         if (timeB.forma > timeA.forma) motivos.push(`✓ ${nomeTimeB} possui melhor forma recente`);
