@@ -403,7 +403,7 @@ function analisarPartida() {
     `;
 }
 // ======================================
-// ANÁLISE EXCLUSIVA H2H (REFATORADA)
+// ANÁLISE EXCLUSIVA H2H (COM HIERARQUIA FIXA)
 // ======================================
 function analisarApenasH2H() {
     const nomeTimeA = document.getElementById("timeA")?.value.trim() || "Time A";
@@ -480,51 +480,43 @@ function analisarApenasH2H() {
     const eSuperFavoritoB = oddB > 0 && oddB <= 1.40;
     const temSuperFavorito = eSuperFavoritoA || eSuperFavoritoB;
 
-    const mercadosH2H = [];
+    let melhorH2H = null;
 
-    // --- 1. MERCADOS DE GOLS ---
-    // Both Teams To Score (BTTS)
+    // --- PASSO 1: TESTA MERCADOS DE GOLS COM TRAVAS ---
+    const mercadosGols = [];
+
     if (!temSuperFavorito && (oddBTTS === 0 || oddBTTS <= 1.85) && bttsH2H >= 65) {
-        mercadosH2H.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
+        mercadosGols.push({ nome: "Ambos Marcam", probabilidade: bttsH2H });
     }
 
-    // Over 2.5 Gols (Requer Over25 >= BTTS + 5%)
     if ((oddOver25 === 0 || oddOver25 <= 1.85) && over25H2H >= 65 && over25H2H >= (bttsH2H + 5)) {
-        mercadosH2H.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
+        mercadosGols.push({ nome: "Over 2.5 Gols", probabilidade: over25H2H });
     }
 
-    // --- 2. VITÓRIA / DNB TIME A ---
-    if (probVitA >= 65 && (oddA === 0 || (oddA >= 1.40 && oddA <= 1.80))) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeA}`, probabilidade: probVitA });
-    } else if (probVitA >= 55 && probVitA < 65) {
-        const probDNB_A = Math.min(88, Math.round(probVitA + (taxaEmpateH2H * 0.30)));
-        if (probDNB_A >= 65) {
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeA}`, probabilidade: probDNB_A });
+    if (mercadosGols.length > 0) {
+        mercadosGols.sort((a, b) => b.probabilidade - a.probabilidade);
+        melhorH2H = mercadosGols[0];
+    }
+
+    // --- PASSO 2: RETORNA VITÓRIA SECA (ODD 1.40 A 1.85) ---
+    if (!melhorH2H) {
+        const timeFavorito = probVitA >= probVitB ? nomeTimeA : nomeTimeB;
+        const probFavorito = probVitA >= probVitB ? probVitA : probVitB;
+        const oddFavorito = probVitA >= probVitB ? oddA : oddB;
+
+        // Se a odd do favorito estiver dentro da faixa segura (1.40 a 1.85)
+        if (oddFavorito === 0 || (oddFavorito >= 1.40 && oddFavorito <= 1.85)) {
+            melhorH2H = { nome: `Vitória ${timeFavorito}`, probabilidade: probFavorito };
         }
-    }
-
-    // --- 3. VITÓRIA / DNB TIME B ---
-    if (probVitB >= 65 && (oddB === 0 || (oddB >= 1.40 && oddB <= 1.80))) {
-        mercadosH2H.push({ nome: `Vitória ${nomeTimeB}`, probabilidade: probVitB });
-    } else if (probVitB >= 55 && probVitB < 65) {
-        const probDNB_B = Math.min(88, Math.round(probVitB + (taxaEmpateH2H * 0.30)));
-        if (probDNB_B >= 65) {
-            mercadosH2H.push({ nome: `Empate Anula - ${nomeTimeB}`, probabilidade: probDNB_B });
+        // --- PASSO 3: PASSOU DISSO (ODD > 1.85 OU < 1.40), VAI PARA DNB ---
+        else {
+            const probDNB = Math.min(88, Math.round(probFavorito + (taxaEmpateH2H * 0.30)));
+            melhorH2H = { nome: `Empate Anula - ${timeFavorito}`, probabilidade: probDNB };
         }
-    }
-
-    const melhorH2H = escolherMelhorAposta(mercadosH2H);
-    const resultado = document.getElementById("resultado");
-
-    if (!melhorH2H || melhorH2H.nome === "Nenhuma" || melhorH2H.probabilidade < 65) {
-        resultado.innerHTML = `
-            <h3>⚠️ H2H + Mercado Inconclusivo</h3>
-            <p>Não foi possível encaixar um palpite dentro dos critérios de segurança (Mínimo: 65%) e odds do mercado. Maior probabilidade analisada: <strong>${melhorH2H ? melhorH2H.probabilidade : 0}%</strong></p>
-        `;
-        return;
     }
 
     const motivos = gerarMotivos(melhorH2H.nome, timeA_H2H, timeB_H2H, h2h, nomeTimeA, nomeTimeB, mercadoOdds);
+    const resultado = document.getElementById("resultado");
 
     resultado.innerHTML = `
         <div class="resultado-top">
@@ -537,7 +529,7 @@ function analisarApenasH2H() {
             <ul>
                 ${motivos.length > 0
             ? motivos.map(m => `<li>${m}</li>`).join("")
-            : "<li>✓ Seleção ponderada respeitando a odd limite (<= 1.85) e o histórico direto.</li>"
+            : "<li>✓ Seleção ajustada conforme hierarquia de mercado (Gols -> Vitória Seca -> DNB).</li>"
         }
             </ul>
         </div>
